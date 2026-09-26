@@ -9,11 +9,11 @@ import {
 
 describe('search result formatters', () => {
   it('rounds the beginning down and the end up to cover the full matched interval', () => {
-    expect(formatVideoTimeRange(5.9, 12.1)).toBe('[0:05-0:13]');
+    expect(formatVideoTimeRange(5.9, 12.1)).toBe('[0:05 - 0:13]');
   });
 
   it('uses hours when a time reaches a full hour', () => {
-    expect(formatVideoTimeRange(3_723, 3_724)).toBe('[1:02:03-1:02:04]');
+    expect(formatVideoTimeRange(3_723, 3_724)).toBe('[1:02:03 - 1:02:04]');
   });
 
   it('formats upload dates consistently and returns null for missing or invalid dates', () => {

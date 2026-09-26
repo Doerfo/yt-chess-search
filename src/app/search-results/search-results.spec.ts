@@ -48,9 +48,9 @@ describe('SearchResults', () => {
     expect(element.querySelectorAll('.results__item')).toHaveLength(2);
     expect(firstResult.querySelectorAll('h3')).toHaveLength(1);
     expect(firstLinks).toHaveLength(2);
-    expect(firstLinks[0].textContent?.trim()).toBe('[0:10-0:12]');
+    expect(firstLinks[0].textContent?.trim()).toBe('[0:10 - 0:12]');
     expect(firstLinks[0].href).toBe('https://www.youtube.com/watch?v=one&t=10');
-    expect(firstLinks[1].textContent?.trim()).toBe('[0:40-0:45]');
+    expect(firstLinks[1].textContent?.trim()).toBe('[0:40 - 0:45]');
     expect(firstLinks[1].href).toBe('https://www.youtube.com/watch?v=one&t=40');
     expect(firstResult.textContent).toContain('Apr 24, 2021');
     expect(firstResult.textContent).toContain('39:36');
