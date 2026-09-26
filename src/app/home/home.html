@@ -16,7 +16,7 @@
 
     <section class="results-panel" aria-label="Search results">
       <app-search-results
-        [matches]="search.results()"
+        [videos]="search.results()"
         [total]="search.total()"
         [loading]="search.searched() && (search.status() === 'loading' || search.searching())"
         [error]="search.error()"

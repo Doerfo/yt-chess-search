@@ -1,4 +1,4 @@
-import type { PositionMatch } from './position-match';
+import type { PositionVideoMatch } from './position-match';
 
 export interface InitializeSearchWorkerMessage {
   type: 'initialize';
@@ -12,9 +12,7 @@ export interface SearchWorkerQueryMessage {
   offset: number;
 }
 
-export type PositionSearchWorkerRequest =
-  | InitializeSearchWorkerMessage
-  | SearchWorkerQueryMessage;
+export type PositionSearchWorkerRequest = InitializeSearchWorkerMessage | SearchWorkerQueryMessage;
 
 export interface PositionSearchWorkerReadyMessage {
   type: 'ready';
@@ -25,7 +23,7 @@ export interface PositionSearchWorkerResultsMessage {
   requestId: number;
   offset: number;
   total: number;
-  results: PositionMatch[];
+  results: PositionVideoMatch[];
 }
 
 export interface PositionSearchWorkerErrorMessage {
