@@ -1,0 +1,66 @@
+<section class="results" aria-labelledby="search-results-heading">
+  <header class="results__header">
+    <h2 id="search-results-heading" class="results__title">Position matches</h2>
+    <span class="results__count" aria-live="polite">
+      {{ total() }} {{ total() === 1 ? 'occurrence' : 'occurrences' }}
+    </span>
+  </header>
+
+  @if (matches().length > 0) {
+    <ol class="results__list" aria-label="Search result occurrences">
+      @for (match of matches(); track $index) {
+        <li class="results__item">
+          <a
+            class="results__link"
+            [href]="timestampedUrl(match)"
+            [attr.aria-label]="formatRange(match) + ' ' + match.videoName"
+            [title]="match.videoName"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="results__time">{{ formatRange(match) }}</span>
+            <span class="results__name" [title]="match.videoName">{{ match.videoName }}</span>
+          </a>
+        </li>
+      }
+    </ol>
+
+    @if (error()) {
+      <div class="results__state results__state--error" role="alert">
+        <p class="results__message">{{ error() }}</p>
+        <button
+          class="results__button results__button--secondary"
+          type="button"
+          (click)="retry.emit()"
+        >
+          Retry
+        </button>
+      </div>
+    } @else if (loading() || loadingMore()) {
+      <p class="results__loading" role="status">Loading more occurrences…</p>
+    } @else if (hasMore()) {
+      <div class="results__more">
+        <button class="results__button" type="button" (click)="requestMore()">
+          Load more occurrences
+        </button>
+      </div>
+    }
+  } @else if (error()) {
+    <div class="results__state results__state--error" role="alert">
+      <p class="results__message">{{ error() }}</p>
+      <button
+        class="results__button results__button--secondary"
+        type="button"
+        (click)="retry.emit()"
+      >
+        Retry
+      </button>
+    </div>
+  } @else if (loading()) {
+    <p class="results__state" role="status">Searching for matching positions…</p>
+  } @else if (!searched()) {
+    <p class="results__state">Search a position to find its video occurrences.</p>
+  } @else {
+    <p class="results__state" role="status">No matching video occurrences were found.</p>
+  }
+</section>

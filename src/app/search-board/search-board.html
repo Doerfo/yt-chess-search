@@ -1,0 +1,37 @@
+<section class="search-board" aria-label="Chess position editor">
+  <div
+    class="board"
+    #boardHost
+    role="img"
+    tabindex="0"
+    aria-keyshortcuts="ArrowLeft ArrowRight"
+    [attr.aria-label]="boardLabel()"
+    (keydown)="handleBoardKeydown($event)"
+  ></div>
+  <p class="visually-hidden" aria-live="polite">{{ turnDescription() }}</p>
+
+  @if (pendingPromotion()) {
+    <div class="promotion-picker" role="group" aria-label="Choose a promotion piece">
+      <span class="promotion-prompt">Choose a promotion piece</span>
+      @for (option of promotionOptions; track option.piece) {
+        <button type="button" class="board-control" (click)="promote(option.piece)">
+          {{ option.label }}
+        </button>
+      }
+      <button type="button" class="board-control board-control--quiet" (click)="cancelPromotion()">
+        Cancel
+      </button>
+    </div>
+  }
+
+  <div class="board-controls" aria-label="Board controls">
+    <button type="button" class="board-control" (click)="reset()">Reset</button>
+    <button type="button" class="board-control" (click)="goBack()" [disabled]="!canGoBack()">
+      Back
+    </button>
+    <button type="button" class="board-control" (click)="goForward()" [disabled]="!canGoForward()">
+      Forward
+    </button>
+    <button type="button" class="board-control" (click)="flip()">Flip board</button>
+  </div>
+</section>

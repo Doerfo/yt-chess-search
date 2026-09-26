@@ -24,6 +24,8 @@ jobs:
         uses: actions/configure-pages@v6
       - name: Install dependencies
         run: npm ci
+      - name: Run tests
+        run: npm test -- --watch=false
       - name: Build Angular app
         run: npm run build -- --base-href /yt-chess-search/
       - name: Upload Pages artifact

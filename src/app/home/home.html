@@ -1,0 +1,30 @@
+<main class="home-page">
+  <header class="page-intro">
+    <p class="eyebrow">Chess video search - Daniel Naroditsky</p>
+    <h1>Find chess games by position</h1>
+    <p class="intro-copy">
+      Play moves from the starting position to find matching games from chess videos. Open a result
+      to see where the position appeared.
+    </p>
+  </header>
+
+  <section class="search-layout" aria-label="Position search">
+    <div class="board-panel">
+      <h2>Play to your position</h2>
+      <app-search-board (positionChange)="onPositionChange($event)" />
+    </div>
+
+    <section class="results-panel" aria-label="Search results">
+      <app-search-results
+        [matches]="search.results()"
+        [total]="search.total()"
+        [loading]="search.searched() && (search.status() === 'loading' || search.searching())"
+        [error]="search.error()"
+        [searched]="search.searched()"
+        [hasMore]="search.hasMore()"
+        (loadMore)="loadMore()"
+        (retry)="retry()"
+      />
+    </section>
+  </section>
+</main>
