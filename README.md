@@ -1,6 +1,6 @@
 # YouTube Chess Search
 
-Find Daniel Naroditsky videos that show a chess position, then jump to the matching moment.
+Find chess videos that show a chess position, then jump to the matching moment.
 
 ## MVP plan
 
