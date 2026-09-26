@@ -1,4 +1,4 @@
-/** Format seconds in the compact style used by video occurrence links. */
+/** Convert seconds to m:ss, or h:mm:ss for times of one hour or more. */
 export function formatVideoTime(seconds: number): string {
   const wholeSeconds = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
   const hours = Math.floor(wholeSeconds / 3_600);
@@ -14,7 +14,7 @@ export function formatVideoTime(seconds: number): string {
   return `${minutes}:${paddedSeconds}`;
 }
 
-/** Round outward so a displayed range always covers the matched interval. */
+/** Round the start down and the end up so the label covers the full interval. */
 export function formatVideoTimeRange(startSeconds: number, endSeconds: number): string {
   const start = Math.max(0, Math.floor(Number.isFinite(startSeconds) ? startSeconds : 0));
   const roundedEnd = Math.max(0, Math.ceil(Number.isFinite(endSeconds) ? endSeconds : 0));
@@ -23,7 +23,7 @@ export function formatVideoTimeRange(startSeconds: number, endSeconds: number): 
   return `[${formatVideoTime(start)}-${formatVideoTime(end)}]`;
 }
 
-/** Add a YouTube start time while preserving the rest of the source URL. */
+/** Add the interval's start time to a YouTube URL; return null for an invalid URL. */
 export function buildTimestampedVideoUrl(
   sourceUrl: string,
   timeFromSeconds: number,
