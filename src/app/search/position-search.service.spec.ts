@@ -6,7 +6,7 @@ import type {
   PositionSearchWorkerRequest,
   PositionSearchWorkerResponse,
 } from './position-search.messages';
-import type { PositionMatch } from './position-match';
+import type { PositionVideoMatch } from './position-match';
 
 class FakeWorker {
   onmessage: ((event: MessageEvent<PositionSearchWorkerResponse>) => void) | null = null;
@@ -27,15 +27,21 @@ class FakeWorker {
   }
 }
 
-function match(videoId: string): PositionMatch {
+function match(videoId: string): PositionVideoMatch {
   return {
     videoId,
     videoName: `Video ${videoId}`,
     sourceUrl: `https://www.youtube.com/watch?v=${videoId}`,
     thumbnailUrl: null,
-    timeFromSeconds: 12,
-    timeToSeconds: 14,
-    boardOrientation: 'white_bottom',
+    uploadDate: '20250101',
+    durationSeconds: 120,
+    positions: [
+      {
+        timeFromSeconds: 12,
+        timeToSeconds: 14,
+        boardOrientation: 'white_bottom',
+      },
+    ],
   };
 }
 
@@ -83,7 +89,11 @@ describe('PositionSearchService', () => {
 
     const requests = worker.messages.filter((message) => message.type === 'search');
     expect(requests).toHaveLength(1);
-    expect(requests[0]).toMatchObject({ type: 'search', piecePlacement: 'latest-placement', offset: 0 });
+    expect(requests[0]).toMatchObject({
+      type: 'search',
+      piecePlacement: 'latest-placement',
+      offset: 0,
+    });
     expect(service.status()).toBe('ready');
   });
 
@@ -133,7 +143,11 @@ describe('PositionSearchService', () => {
 
     service.loadMore();
     const loadMoreRequest = worker.messages.at(-1);
-    expect(loadMoreRequest).toMatchObject({ type: 'search', piecePlacement: 'new-placement', offset: 50 });
+    expect(loadMoreRequest).toMatchObject({
+      type: 'search',
+      piecePlacement: 'new-placement',
+      offset: 50,
+    });
     if (loadMoreRequest?.type !== 'search') {
       throw new Error('Expected a worker search message for the next batch.');
     }

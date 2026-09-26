@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, inject, signal, type Signal } from '@angular/core';
-import type { PositionMatch, PositionSearchStatus } from './position-match';
+import type { PositionSearchStatus, PositionVideoMatch } from './position-match';
 import type {
   PositionSearchWorkerResponse,
   PositionSearchWorkerResultsMessage,
@@ -18,7 +18,7 @@ export class PositionSearchService {
   private readonly document = inject(DOCUMENT);
   private readonly _status = signal<PositionSearchStatus>('loading');
   private readonly _error = signal<string | null>(null);
-  private readonly _results = signal<PositionMatch[]>([]);
+  private readonly _results = signal<PositionVideoMatch[]>([]);
   private readonly _total = signal(0);
   private readonly _searched = signal(false);
   private readonly _searching = signal(false);
@@ -26,7 +26,7 @@ export class PositionSearchService {
 
   readonly status: Signal<PositionSearchStatus> = this._status.asReadonly();
   readonly error: Signal<string | null> = this._error.asReadonly();
-  readonly results: Signal<PositionMatch[]> = this._results.asReadonly();
+  readonly results: Signal<PositionVideoMatch[]> = this._results.asReadonly();
   readonly total: Signal<number> = this._total.asReadonly();
   readonly searched: Signal<boolean> = this._searched.asReadonly();
   readonly searching: Signal<boolean> = this._searching.asReadonly();

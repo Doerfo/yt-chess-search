@@ -1,6 +1,12 @@
 import { Component, effect, input, output, signal } from '@angular/core';
-import type { PositionMatch } from '../search/position-match';
-import { buildTimestampedVideoUrl, formatVideoTimeRange } from './search-results.utils';
+import type { PositionOccurrence, PositionVideoMatch } from '../search/position-match';
+import {
+  buildTimestampedVideoUrl,
+  formatUploadDate,
+  formatVideoDuration,
+  formatVideoTimeRange,
+  uploadDateIso,
+} from './search-results.utils';
 
 @Component({
   selector: 'app-search-results',
@@ -9,9 +15,9 @@ import { buildTimestampedVideoUrl, formatVideoTimeRange } from './search-results
   styleUrl: './search-results.css',
 })
 export class SearchResults {
-  private previousMatchCount: number | undefined;
+  private previousVideoCount: number | undefined;
 
-  readonly matches = input<readonly PositionMatch[]>([]);
+  readonly videos = input<readonly PositionVideoMatch[]>([]);
   readonly total = input(0);
   readonly loading = input(false);
   readonly error = input<string | null>(null);
@@ -24,29 +30,41 @@ export class SearchResults {
 
   constructor() {
     effect(() => {
-      const matchCount = this.matches().length;
+      const videoCount = this.videos().length;
       const hasMore = this.hasMore();
       const error = this.error();
 
       if (
-        this.previousMatchCount === undefined ||
-        matchCount !== this.previousMatchCount ||
+        this.previousVideoCount === undefined ||
+        videoCount !== this.previousVideoCount ||
         !hasMore ||
         error !== null
       ) {
         this.loadingMore.set(false);
       }
 
-      this.previousMatchCount = matchCount;
+      this.previousVideoCount = videoCount;
     });
   }
 
-  formatRange(match: PositionMatch): string {
-    return formatVideoTimeRange(match.timeFromSeconds, match.timeToSeconds);
+  formatRange(position: PositionOccurrence): string {
+    return formatVideoTimeRange(position.timeFromSeconds, position.timeToSeconds);
   }
 
-  timestampedUrl(match: PositionMatch): string | null {
-    return buildTimestampedVideoUrl(match.sourceUrl, match.timeFromSeconds);
+  timestampedUrl(video: PositionVideoMatch, position: PositionOccurrence): string | null {
+    return buildTimestampedVideoUrl(video.sourceUrl, position.timeFromSeconds);
+  }
+
+  formatDate(uploadDate: string | null): string | null {
+    return formatUploadDate(uploadDate);
+  }
+
+  dateTime(uploadDate: string | null): string | null {
+    return uploadDateIso(uploadDate);
+  }
+
+  formatDuration(durationSeconds: number | null): string | null {
+    return formatVideoDuration(durationSeconds);
   }
 
   requestMore(): void {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildTimestampedVideoUrl, formatVideoTimeRange } from './search-results.utils';
+import {
+  buildTimestampedVideoUrl,
+  formatUploadDate,
+  formatVideoDuration,
+  formatVideoTimeRange,
+  uploadDateIso,
+} from './search-results.utils';
 
 describe('search result formatters', () => {
   it('rounds the beginning down and the end up to cover the full matched interval', () => {
@@ -8,6 +14,20 @@ describe('search result formatters', () => {
 
   it('uses hours when a time reaches a full hour', () => {
     expect(formatVideoTimeRange(3_723, 3_724)).toBe('[1:02:03-1:02:04]');
+  });
+
+  it('formats upload dates consistently and returns null for missing or invalid dates', () => {
+    expect(formatUploadDate('20210424')).toBe('Apr 24, 2021');
+    expect(uploadDateIso('20210424')).toBe('2021-04-24');
+    expect(formatUploadDate(null)).toBeNull();
+    expect(formatUploadDate('20210230')).toBeNull();
+  });
+
+  it('formats video durations as m:ss or h:mm:ss and omits missing values', () => {
+    expect(formatVideoDuration(2_376)).toBe('39:36');
+    expect(formatVideoDuration(3_723)).toBe('1:02:03');
+    expect(formatVideoDuration(null)).toBeNull();
+    expect(formatVideoDuration(-1)).toBeNull();
   });
 
   it('adds a floored start time while preserving the source query and fragment', () => {

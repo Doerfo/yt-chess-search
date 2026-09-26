@@ -1,7 +1,7 @@
 import { Component, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import type { PositionMatch } from '../search/position-match';
+import type { PositionVideoMatch } from '../search/position-match';
 import { PositionSearchService } from '../search/position-search.service';
 import { SearchBoard } from '../search-board/search-board';
 import { SearchResults } from '../search-results/search-results';
@@ -22,7 +22,7 @@ describe('Home', () => {
     status: signal<'loading' | 'ready' | 'error'>('loading'),
     searching: signal(false),
     error: signal<string | null>(null),
-    results: signal<PositionMatch[]>([]),
+    results: signal<PositionVideoMatch[]>([]),
     total: signal(0),
     searched: signal(false),
     hasMore: signal(false),
@@ -61,7 +61,7 @@ describe('Home', () => {
     expect(element.querySelector('h1')?.textContent).toContain('Find chess games by position');
     expect(element.querySelector('app-search-board')).not.toBeNull();
     expect(element.querySelector('app-search-results')).not.toBeNull();
-    expect(element.textContent).toContain('Search a position to find its video occurrences.');
+    expect(element.textContent).toContain('Search a position to find matching videos.');
   });
 
   it('routes board and result actions to the search service', () => {
@@ -77,14 +77,20 @@ describe('Home', () => {
   });
 
   it('passes current results and search state to SearchResults', () => {
-    const match: PositionMatch = {
+    const match: PositionVideoMatch = {
       videoId: 'video-1',
       videoName: 'A sample game',
       sourceUrl: 'https://www.youtube.com/watch?v=video-1',
       thumbnailUrl: null,
-      timeFromSeconds: 120,
-      timeToSeconds: 136,
-      boardOrientation: null,
+      uploadDate: '20250101',
+      durationSeconds: 2400,
+      positions: [
+        {
+          timeFromSeconds: 120,
+          timeToSeconds: 136,
+          boardOrientation: null,
+        },
+      ],
     };
     searchService.status.set('ready');
     searchService.searching.set(true);
@@ -96,7 +102,7 @@ describe('Home', () => {
 
     const results = fixture.debugElement.query(By.directive(SearchResults)).componentInstance;
 
-    expect(results.matches()).toEqual([match]);
+    expect(results.videos()).toEqual([match]);
     expect(results.total()).toBe(8);
     expect(results.loading()).toBe(true);
     expect(results.error()).toBeNull();

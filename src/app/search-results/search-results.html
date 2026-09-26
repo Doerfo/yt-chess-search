@@ -2,25 +2,55 @@
   <header class="results__header">
     <h2 id="search-results-heading" class="results__title">Position matches</h2>
     <span class="results__count" aria-live="polite">
-      {{ total() }} {{ total() === 1 ? 'occurrence' : 'occurrences' }}
+      {{ total() }} {{ total() === 1 ? 'video' : 'videos' }}
     </span>
   </header>
 
-  @if (matches().length > 0) {
-    <ol class="results__list" aria-label="Search result occurrences">
-      @for (match of matches(); track $index) {
+  @if (videos().length > 0) {
+    <ol class="results__list" aria-label="Search result videos">
+      @for (video of videos(); track video.videoId) {
         <li class="results__item">
-          <a
-            class="results__link"
-            [href]="timestampedUrl(match)"
-            [attr.aria-label]="formatRange(match) + ' ' + match.videoName"
-            [title]="match.videoName"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span class="results__time">{{ formatRange(match) }}</span>
-            <span class="results__name" [title]="match.videoName">{{ match.videoName }}</span>
-          </a>
+          <div class="results__summary">
+            <div class="results__heading">
+              <h3 class="results__name" [title]="video.videoName">{{ video.videoName }}</h3>
+              @let uploadDate = formatDate(video.uploadDate);
+              @let duration = formatDuration(video.durationSeconds);
+              @if (uploadDate || duration) {
+                <p class="results__metadata">
+                  @if (uploadDate) {
+                    <time [attr.datetime]="dateTime(video.uploadDate)">{{ uploadDate }}</time>
+                  }
+                  @if (uploadDate && duration) {
+                    <span aria-hidden="true">·</span>
+                  }
+                  @if (duration) {
+                    <span>{{ duration }}</span>
+                  }
+                </p>
+              }
+            </div>
+          </div>
+
+          <div class="results__times">
+            <ul
+              class="results__time-list"
+              [attr.aria-label]="'Matching times for ' + video.videoName"
+            >
+              @for (position of video.positions; track $index) {
+                <li>
+                  <a
+                    class="results__time-link"
+                    [href]="timestampedUrl(video, position)"
+                    [attr.aria-label]="'Open video at ' + formatRange(position)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ formatRange(position) }}
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
         </li>
       }
     </ol>
@@ -37,11 +67,11 @@
         </button>
       </div>
     } @else if (loading() || loadingMore()) {
-      <p class="results__loading" role="status">Loading more occurrences…</p>
+      <p class="results__loading" role="status">Loading more videos…</p>
     } @else if (hasMore()) {
       <div class="results__more">
         <button class="results__button" type="button" (click)="requestMore()">
-          Load more occurrences
+          Load more videos
         </button>
       </div>
     }
@@ -57,10 +87,10 @@
       </button>
     </div>
   } @else if (loading()) {
-    <p class="results__state" role="status">Searching for matching positions…</p>
+    <p class="results__state" role="status">Searching for matching videos…</p>
   } @else if (!searched()) {
-    <p class="results__state">Search a position to find its video occurrences.</p>
+    <p class="results__state">Search a position to find matching videos.</p>
   } @else {
-    <p class="results__state" role="status">No matching video occurrences were found.</p>
+    <p class="results__state" role="status">No matching videos were found.</p>
   }
 </section>
