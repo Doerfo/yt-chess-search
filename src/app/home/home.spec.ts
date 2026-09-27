@@ -1,7 +1,7 @@
 import { Component, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import type { PositionVideoMatch } from '../search/position-match';
+import type { BoardOrientation, PositionVideoMatch } from '../search/position-match';
 import { PositionSearchService } from '../search/position-search.service';
 import { SearchBoard } from '../search-board/search-board';
 import { SearchResults } from '../search-results/search-results';
@@ -14,6 +14,7 @@ import { Home } from './home';
 })
 class SearchBoardStub {
   readonly positionChange = output<string | null>();
+  readonly orientationChange = output<BoardOrientation>();
 }
 
 describe('Home', () => {
@@ -71,9 +72,30 @@ describe('Home', () => {
     fixture.debugElement.query(By.directive(SearchResults)).componentInstance.loadMore.emit();
     fixture.debugElement.query(By.directive(SearchResults)).componentInstance.retry.emit();
 
-    expect(searchService.search).toHaveBeenCalledWith('board-fen');
+    expect(searchService.search).toHaveBeenCalledWith('board-fen', null);
     expect(searchService.loadMore).toHaveBeenCalledOnce();
     expect(searchService.retry).toHaveBeenCalledOnce();
+  });
+
+  it('uses the current board rotation when the filter is checked', () => {
+    const board = fixture.debugElement.query(By.directive(SearchBoardStub))
+      .componentInstance as SearchBoardStub;
+    const checkbox = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
+      '.rotation-filter input',
+    )!;
+
+    expect(checkbox.checked).toBe(false);
+    board.positionChange.emit('board-fen');
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change'));
+    expect(searchService.search).toHaveBeenLastCalledWith('board-fen', 'white_bottom');
+
+    board.orientationChange.emit('black_bottom');
+    expect(searchService.search).toHaveBeenLastCalledWith('board-fen', 'black_bottom');
+
+    checkbox.checked = false;
+    checkbox.dispatchEvent(new Event('change'));
+    expect(searchService.search).toHaveBeenLastCalledWith('board-fen', null);
   });
 
   it('passes current results and search state to SearchResults', () => {
