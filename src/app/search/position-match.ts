@@ -10,7 +10,6 @@ export interface PositionVideoMatch {
   videoId: string;
   videoName: string;
   sourceUrl: string;
-  thumbnailUrl: string | null;
   uploadDate: string | null;
   durationSeconds: number | null;
   positions: PositionOccurrence[];

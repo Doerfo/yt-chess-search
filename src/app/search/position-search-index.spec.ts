@@ -17,7 +17,6 @@ function video(
     videoId,
     videoName,
     sourceUrl: `https://www.youtube.com/watch?v=${videoId}`,
-    thumbnailUrl: null,
     ...(uploadDate !== undefined ? { uploadDate } : {}),
     ...(durationSeconds !== undefined ? { durationSeconds } : {}),
     positions,

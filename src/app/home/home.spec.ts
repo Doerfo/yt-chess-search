@@ -2,7 +2,7 @@ import { Component, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import type { BoardOrientation, PositionVideoMatch } from '../search/position-match';
-import { PositionSearchService } from '../search/position-search.service';
+import { PositionSearchService } from '../search';
 import { SearchBoard } from '../search-board/search-board';
 import { SearchResults } from '../search-results/search-results';
 import { Home } from './home';
@@ -103,7 +103,6 @@ describe('Home', () => {
       videoId: 'video-1',
       videoName: 'A sample game',
       sourceUrl: 'https://www.youtube.com/watch?v=video-1',
-      thumbnailUrl: null,
       uploadDate: '20250101',
       durationSeconds: 2400,
       positions: [

@@ -32,7 +32,6 @@ function match(videoId: string): PositionVideoMatch {
     videoId,
     videoName: `Video ${videoId}`,
     sourceUrl: `https://www.youtube.com/watch?v=${videoId}`,
-    thumbnailUrl: null,
     uploadDate: '20250101',
     durationSeconds: 120,
     positions: [
