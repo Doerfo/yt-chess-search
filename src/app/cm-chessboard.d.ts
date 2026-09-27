@@ -52,8 +52,16 @@ declare module 'cm-chessboard' {
       };
     });
     enableMoveInput(handler: (event: MoveInputEvent) => boolean | void): void;
+    cancelMoveInput(): void;
+    addExtension(extensionClass: unknown, props?: Record<string, unknown>): void;
+    addLegalMovesMarkers?(moves: Array<{ to: string; promotion?: string }>): void;
+    removeLegalMovesMarkers?(): void;
     setPosition(fen: string, animated?: boolean): Promise<void>;
     setOrientation(color: string, animated?: boolean): Promise<void>;
     destroy(): void;
   }
+}
+
+declare module 'cm-chessboard/src/extensions/markers/Markers.js' {
+  export class Markers {}
 }

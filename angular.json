@@ -29,6 +29,11 @@
                 "output": "assets/cm-chessboard/pieces"
               },
               {
+                "glob": "markers.svg",
+                "input": "node_modules/cm-chessboard/assets/extensions/markers",
+                "output": "assets/cm-chessboard/extensions/markers"
+              },
+              {
                 "glob": "combined-positions.json",
                 "input": "src/data",
                 "output": "data"
@@ -36,6 +41,7 @@
             ],
             "styles": [
               "node_modules/cm-chessboard/assets/chessboard.css",
+              "node_modules/cm-chessboard/assets/extensions/markers/markers.css",
               "node_modules/cm-chessboard/assets/extensions/promotion-dialog/promotion-dialog.css",
               "src/styles.css"
             ]
