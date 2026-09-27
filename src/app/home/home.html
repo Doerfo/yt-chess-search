@@ -11,10 +11,21 @@
   <section class="search-layout" aria-label="Position search">
     <div class="board-panel">
       <h2>Play to your position</h2>
-      <app-search-board (positionChange)="onPositionChange($event)" />
+      <app-search-board
+        (positionChange)="onPositionChange($event)"
+        (orientationChange)="onBoardOrientationChange($event)"
+      />
     </div>
 
     <section class="results-panel" aria-label="Search results">
+      <label class="rotation-filter">
+        <input
+          #sameRotation
+          type="checkbox"
+          (change)="onSameBoardRotationChange(sameRotation.checked)"
+        />
+        <span>Only games with same board rotation</span>
+      </label>
       <app-search-results
         [videos]="search.results()"
         [total]="search.total()"

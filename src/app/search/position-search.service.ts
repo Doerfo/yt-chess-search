@@ -1,6 +1,10 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, inject, signal, type Signal } from '@angular/core';
-import type { PositionSearchStatus, PositionVideoMatch } from './position-match';
+import type {
+  BoardOrientation,
+  PositionSearchStatus,
+  PositionVideoMatch,
+} from './position-match';
 import type {
   PositionSearchWorkerResponse,
   PositionSearchWorkerResultsMessage,
@@ -35,6 +39,7 @@ export class PositionSearchService {
   private worker: Worker | null = null;
   private workerReady = false;
   private currentQuery: string | null = null;
+  private currentBoardOrientation: BoardOrientation | null = null;
   private nextRequestId = 0;
   private activeRequest: ActiveRequest | null = null;
 
@@ -42,8 +47,9 @@ export class PositionSearchService {
     this.startWorker();
   }
 
-  search(piecePlacement: string | null): void {
+  search(piecePlacement: string | null, boardOrientation: BoardOrientation | null = null): void {
     this.currentQuery = piecePlacement?.trim() || null;
+    this.currentBoardOrientation = boardOrientation;
     this._searched.set(this.currentQuery !== null);
     this._searching.set(this.currentQuery !== null && this._status() !== 'error');
     this._results.set([]);
@@ -176,7 +182,13 @@ export class PositionSearchService {
     const requestId = ++this.nextRequestId;
     this._searching.set(true);
     this.activeRequest = { requestId, piecePlacement: query, offset, append };
-    this.worker.postMessage({ type: 'search', requestId, piecePlacement: query, offset });
+    this.worker.postMessage({
+      type: 'search',
+      requestId,
+      piecePlacement: query,
+      offset,
+      boardOrientation: this.currentBoardOrientation,
+    });
   }
 
   private fail(message: string): void {

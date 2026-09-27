@@ -1,4 +1,4 @@
-import type { PositionVideoMatch } from './position-match';
+import type { BoardOrientation, PositionVideoMatch } from './position-match';
 
 export interface InitializeSearchWorkerMessage {
   type: 'initialize';
@@ -10,6 +10,7 @@ export interface SearchWorkerQueryMessage {
   requestId: number;
   piecePlacement: string;
   offset: number;
+  boardOrientation: BoardOrientation | null;
 }
 
 export type PositionSearchWorkerRequest = InitializeSearchWorkerMessage | SearchWorkerQueryMessage;
