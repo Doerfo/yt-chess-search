@@ -12,7 +12,16 @@
         <li class="results__item">
           <div class="results__summary">
             <div class="results__heading">
-              <h3 class="results__name" [title]="video.videoName">{{ video.videoName }}</h3>
+              <h3 class="results__name" [title]="video.videoName">
+                <a
+                  class="results__name-link"
+                  [href]="video.sourceUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ video.videoName }}
+                </a>
+              </h3>
               @let uploadDate = formatDate(video.uploadDate);
               @let duration = formatDuration(video.durationSeconds);
               @if (uploadDate || duration) {
