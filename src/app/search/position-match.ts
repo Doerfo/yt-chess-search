@@ -4,6 +4,8 @@ export interface PositionOccurrence {
   boardOrientation: string | null;
 }
 
+export type BoardOrientation = 'white_bottom' | 'black_bottom';
+
 export interface PositionVideoMatch {
   videoId: string;
   videoName: string;

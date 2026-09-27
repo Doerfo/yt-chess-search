@@ -22,6 +22,7 @@ import {
   type MoveInputEvent,
 } from 'cm-chessboard';
 import { Markers } from 'cm-chessboard/src/extensions/markers/Markers.js';
+import type { BoardOrientation } from '../search/position-match';
 
 type PromotionPiece = 'q' | 'r' | 'b' | 'n';
 
@@ -46,6 +47,7 @@ const PROMOTION_OPTIONS: ReadonlyArray<{ piece: PromotionPiece; label: string }>
 })
 export class SearchBoard implements AfterViewInit, OnDestroy {
   readonly positionChange = output<string | null>();
+  readonly orientationChange = output<BoardOrientation>();
 
   protected readonly promotionOptions = PROMOTION_OPTIONS;
   protected readonly pendingPromotion = signal<PendingPromotion | null>(null);
@@ -92,6 +94,7 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
 
     this.board.addExtension?.(Markers, { autoMarkers: null });
     this.board.enableMoveInput((event) => this.handleMoveInput(event));
+    this.orientationChange.emit('white_bottom');
     this.positionChange.emit(null);
   }
 
@@ -119,6 +122,7 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
     const blackAtBottom = !this.blackAtBottom();
     this.blackAtBottom.set(blackAtBottom);
     this.board?.setOrientation(blackAtBottom ? COLOR.black : COLOR.white);
+    this.orientationChange.emit(blackAtBottom ? 'black_bottom' : 'white_bottom');
   }
 
   protected goBack(): void {

@@ -89,6 +89,23 @@ h1 {
   scrollbar-gutter: stable;
 }
 
+.rotation-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem 0.65rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.rotation-filter input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--green-dark);
+}
+
 @media (max-width: 760px) {
   .home-page {
     grid-template-rows: auto auto;

@@ -58,6 +58,7 @@ workerContext.addEventListener('message', ({ data }: MessageEvent<PositionSearch
     data.piecePlacement,
     data.offset,
     POSITION_SEARCH_BATCH_SIZE,
+    data.boardOrientation,
   );
   post({
     type: 'results',

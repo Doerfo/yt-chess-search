@@ -1,4 +1,4 @@
-import type { PositionOccurrence, PositionVideoMatch } from './position-match';
+import type { BoardOrientation, PositionOccurrence, PositionVideoMatch } from './position-match';
 
 export const POSITION_DATA_SCHEMA_VERSION = 'yt-chess-search-channel-data/v1';
 export const POSITION_SEARCH_BATCH_SIZE = 50;
@@ -200,13 +200,29 @@ export function readPositionBatch(
   piecePlacement: string,
   offset: number,
   limit = POSITION_SEARCH_BATCH_SIZE,
+  boardOrientation: BoardOrientation | null = null,
 ): SearchBatch {
   const videos = index.get(piecePlacement) ?? [];
+  const matchingVideos =
+    boardOrientation === null
+      ? videos
+      : videos.filter((video) =>
+          video.positions.some((position) => position.boardOrientation === boardOrientation),
+        );
   const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
   const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.trunc(limit)) : 0;
+  const page = matchingVideos.slice(safeOffset, safeOffset + safeLimit);
 
   return {
-    results: videos.slice(safeOffset, safeOffset + safeLimit),
-    total: videos.length,
+    results:
+      boardOrientation === null
+        ? page
+        : page.map((video) => ({
+            ...video,
+            positions: video.positions.filter(
+              (position) => position.boardOrientation === boardOrientation,
+            ),
+          })),
+    total: matchingVideos.length,
   };
 }
