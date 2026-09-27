@@ -21,6 +21,7 @@ import {
   PIECES_FILE_TYPE,
   type MoveInputEvent,
 } from 'cm-chessboard';
+import { Markers } from 'cm-chessboard/src/extensions/markers/Markers.js';
 
 type PromotionPiece = 'q' | 'r' | 'b' | 'n';
 
@@ -48,6 +49,7 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
 
   protected readonly promotionOptions = PROMOTION_OPTIONS;
   protected readonly pendingPromotion = signal<PendingPromotion | null>(null);
+  protected readonly fenError = signal<string | null>(null);
   protected readonly blackAtBottom = signal(false);
   protected readonly turnDescription = signal('White to move');
   protected readonly boardLabel = computed(
@@ -62,6 +64,7 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
   private readonly historyIndex = signal(0);
   private board: Chessboard | null = null;
   private moveWasApplied = false;
+  private loadedPosition = false;
 
   protected readonly canGoBack = computed(() => this.historyIndex() > 0);
   protected readonly canGoForward = computed(
@@ -87,6 +90,7 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
       },
     });
 
+    this.board.addExtension?.(Markers, { autoMarkers: null });
     this.board.enableMoveInput((event) => this.handleMoveInput(event));
     this.positionChange.emit(null);
   }
@@ -101,13 +105,17 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
     this.positionHistory.set([FEN.start]);
     this.historyIndex.set(0);
     this.pendingPromotion.set(null);
+    this.fenError.set(null);
+    this.clearMoveSelection();
     this.moveWasApplied = false;
+    this.loadedPosition = false;
     this.turnDescription.set('White to move');
     this.board?.setPosition(FEN.start, false);
     this.positionChange.emit(null);
   }
 
   protected flip(): void {
+    this.clearMoveSelection();
     const blackAtBottom = !this.blackAtBottom();
     this.blackAtBottom.set(blackAtBottom);
     this.board?.setOrientation(blackAtBottom ? COLOR.black : COLOR.white);
@@ -119,6 +127,35 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
 
   protected goForward(): void {
     this.restoreHistoryPosition(this.historyIndex() + 1);
+  }
+
+  protected loadFen(event: Event, input: string): void {
+    event.preventDefault();
+    const fields = input.trim().split(/\s+/);
+    if (fields.length !== 1 && fields.length !== 6) {
+      this.fenError.set('Enter a valid FEN or piece placement.');
+      return;
+    }
+
+    const fen = fields.length === 1 ? `${fields[0]} w - - 0 1` : fields.join(' ');
+    try {
+      this.game.load(fen);
+    } catch {
+      this.fenError.set('Enter a valid FEN or piece placement.');
+      return;
+    }
+
+    const loadedFen = this.game.fen();
+    this.clearMoveSelection();
+    this.positionHistory.set([loadedFen]);
+    this.historyIndex.set(0);
+    this.loadedPosition = true;
+    this.pendingPromotion.set(null);
+    this.moveWasApplied = false;
+    this.fenError.set(null);
+    this.turnDescription.set(this.game.turn() === 'w' ? 'White to move' : 'Black to move');
+    this.board?.setPosition(loadedFen, false);
+    this.positionChange.emit(loadedFen.split(' ')[0]);
   }
 
   protected handleBoardKeydown(event: KeyboardEvent): void {
@@ -166,11 +203,19 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
     if (event.type === INPUT_EVENT_TYPE.moveInputStarted) {
       if (this.pendingPromotion()) return false;
       const from = event.squareFrom;
-      return !!from && this.game.get(from as Square)?.color === this.game.turn();
+      const canStart = !!from && this.game.get(from as Square)?.color === this.game.turn();
+      this.board?.removeLegalMovesMarkers?.();
+      if (canStart && from) {
+        this.board?.addLegalMovesMarkers?.(
+          this.game.moves({ square: from as Square, verbose: true }),
+        );
+      }
+      return canStart;
     }
 
     if (event.type === INPUT_EVENT_TYPE.validateMoveInput) {
       if (this.pendingPromotion()) return false;
+      this.board?.removeLegalMovesMarkers?.();
 
       const from = event.squareFrom;
       const to = event.squareTo;
@@ -198,10 +243,20 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
       return true;
     }
 
+    if (event.type === INPUT_EVENT_TYPE.moveInputCanceled) {
+      this.board?.removeLegalMovesMarkers?.();
+    }
+
     if (event.type === INPUT_EVENT_TYPE.moveInputFinished && this.moveWasApplied) {
       this.moveWasApplied = false;
+      this.board?.removeLegalMovesMarkers?.();
       this.board?.setPosition(this.game.fen(), false);
     }
+  }
+
+  private clearMoveSelection(): void {
+    this.board?.cancelMoveInput?.();
+    this.board?.removeLegalMovesMarkers?.();
   }
 
   private updateAfterMove(): void {
@@ -229,11 +284,12 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
 
     this.historyIndex.set(index);
     this.pendingPromotion.set(null);
+    this.clearMoveSelection();
     this.moveWasApplied = false;
     this.turnDescription.set(this.game.turn() === 'w' ? 'White to move' : 'Black to move');
     this.board?.setPosition(fen, false);
     const piecePlacement = fen.split(' ')[0];
-    this.positionChange.emit(index === 0 && fen === FEN.start ? null : (piecePlacement ?? null));
+    this.positionChange.emit(index === 0 && !this.loadedPosition ? null : (piecePlacement ?? null));
     return true;
   }
 }

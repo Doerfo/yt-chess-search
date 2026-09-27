@@ -85,10 +85,100 @@ describe('SearchBoard', () => {
 
   afterEach(() => fixture.destroy());
 
+  async function submitFen(fen: string, viaButton = true): Promise<void> {
+    const host = fixture.nativeElement as HTMLElement;
+    const form = host.querySelector<HTMLFormElement>('.fen-form')!;
+    const input = form.querySelector<HTMLInputElement>('input')!;
+    input.value = fen;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    if (viaButton) {
+      form.querySelector('button')!.click();
+    } else {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }
+    await fixture.whenStable();
+  }
+
   it('starts from the initial board and emits null once for the initial search', () => {
     expect(emittedPositions).toEqual([null]);
     expect(board.position).toContain('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
     expect(board.props['assetsUrl']).toBe(new URL('assets/cm-chessboard/', document.baseURI).href);
+  });
+
+  it('loads a full FEN with its turn and castling rights', async () => {
+    const fen = 'r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1';
+    await submitFen(fen);
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(board.position).toBe(fen);
+    expect(host.querySelector('.board')?.getAttribute('aria-label')).toContain('Black to move');
+    expect(emittedPositions.at(-1)).toBe('r3k2r/8/8/8/8/8/8/R3K2R');
+    expect(
+      host.querySelector<HTMLButtonElement>('.board-controls button:nth-child(2)')?.disabled,
+    ).toBe(true);
+    expect(board.input('moveInputStarted', 'e1')).toBe(false);
+    expect(board.input('validateMoveInput', 'e8', 'g8')).toBe(true);
+    board.input('moveInputFinished');
+    expect(board.position).toContain('r4rk1/8/8/8/8/8/8/R3K2R');
+    expect(emittedPositions.at(-1)).toBe('r4rk1/8/8/8/8/8/8/R3K2R');
+  });
+
+  it('loads placement-only input with default move fields and accepts form submission', async () => {
+    const placement = '4k3/8/8/8/8/8/4P3/4K3';
+    await submitFen(placement, false);
+
+    expect(board.position).toBe(`${placement} w - - 0 1`);
+    expect(emittedPositions.at(-1)).toBe(placement);
+    expect(board.input('validateMoveInput', 'e2', 'e4')).toBe(true);
+    board.input('moveInputFinished');
+    expect(emittedPositions.at(-1)).toBe('4k3/8/8/8/4P3/8/8/4K3');
+  });
+
+  it('keeps the loaded position as the new history root, even when it is the starting FEN', async () => {
+    board.input('validateMoveInput', 'e2', 'e4');
+    board.input('moveInputFinished');
+    await submitFen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+
+    const host = fixture.nativeElement as HTMLElement;
+    const back = Array.from(
+      host.querySelectorAll<HTMLButtonElement>('.board-controls button'),
+    ).find((button) => button.textContent?.trim() === 'Back')!;
+    expect(back.disabled).toBe(true);
+    expect(emittedPositions.at(-1)).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
+
+    board.input('validateMoveInput', 'g1', 'f3');
+    board.input('moveInputFinished');
+    await fixture.whenStable();
+    back.click();
+    await fixture.whenStable();
+    expect(board.position).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    expect(emittedPositions.at(-1)).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');
+  });
+
+  it('leaves the board, search, and history unchanged for invalid input', async () => {
+    board.input('validateMoveInput', 'e2', 'e4');
+    board.input('moveInputFinished');
+    await fixture.whenStable();
+    const position = board.position;
+    const emissions = [...emittedPositions];
+
+    await submitFen('8/8/8');
+    const host = fixture.nativeElement as HTMLElement;
+    expect(board.position).toBe(position);
+    expect(emittedPositions).toEqual(emissions);
+    expect(host.querySelector('.fen-error')?.textContent).toContain('Enter a valid FEN');
+    expect(host.querySelector<HTMLInputElement>('.fen-input')?.getAttribute('aria-invalid')).toBe(
+      'true',
+    );
+    expect(
+      Array.from(host.querySelectorAll<HTMLButtonElement>('.board-controls button')).find(
+        (button) => button.textContent?.trim() === 'Back',
+      )?.disabled,
+    ).toBe(false);
+
+    await submitFen('8/8/8/8/8/8/8/8 w - - 0 1');
+    expect(board.position).toBe(position);
+    expect(emittedPositions).toEqual(emissions);
   });
 
   it('emits the exact piece-placement field for legal moves and rejects illegal moves', () => {
