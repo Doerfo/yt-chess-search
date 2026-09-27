@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import type { PositionVideoMatch } from '../search/position-match';
+import type { PositionVideoMatch } from '../search';
 import { SearchResults } from './search-results';
 
 function video(
@@ -12,7 +12,6 @@ function video(
     videoId,
     videoName: `Video ${videoId}`,
     sourceUrl: `https://www.youtube.com/watch?v=${videoId}`,
-    thumbnailUrl: null,
     uploadDate,
     durationSeconds,
     positions,

@@ -138,7 +138,6 @@ export function buildPositionIndex(data: unknown): PositionIndex {
     const videoId = requireString(rawVideo, 'videoId', 'video');
     const videoName = requireString(rawVideo, 'videoName', 'video');
     const sourceUrl = requireString(rawVideo, 'sourceUrl', 'video');
-    const thumbnailUrl = requireNullableString(rawVideo, 'thumbnailUrl', 'video');
     const uploadDate = readUploadDate(rawVideo, videoId);
     const durationSeconds = readDurationSeconds(rawVideo, videoId);
     const rawPositions = rawVideo['positions'];
@@ -170,7 +169,6 @@ export function buildPositionIndex(data: unknown): PositionIndex {
           videoId,
           videoName,
           sourceUrl,
-          thumbnailUrl,
           uploadDate,
           durationSeconds,
           positions: [],

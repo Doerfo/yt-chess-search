@@ -28,7 +28,6 @@ The app loads `src/data/combined-positions.json` when it starts. Keep that filen
       "videoId": "EXAMPLE_VIDEO_ID",
       "videoName": "Example chess game",
       "sourceUrl": "https://www.youtube.com/watch?v=EXAMPLE_VIDEO_ID",
-      "thumbnailUrl": "https://i.ytimg.com/vi/EXAMPLE_VIDEO_ID/hqdefault.jpg",
       "uploadDate": "20210424",
       "durationSeconds": 2376,
       "positions": [
@@ -54,7 +53,6 @@ Replace the example IDs and title with values for your videos. The fields mean:
 | `videoId`          | The YouTube video ID.                                                                                                                                                                                                                                |
 | `videoName`        | The title shown in search results.                                                                                                                                                                                                                   |
 | `sourceUrl`        | The YouTube video URL. Search results add the matched start time to this URL.                                                                                                                                                                        |
-| `thumbnailUrl`     | A thumbnail image URL, or `null` if there is no thumbnail.                                                                                                                                                                                           |
 | `uploadDate`       | The upload date in `YYYYMMDD` format, or `null`. Results use it to sort newest first and display the date.                                                                                                                                           |
 | `durationSeconds`  | The video duration in seconds, or `null`. Results display it as `m:ss` or `h:mm:ss`.                                                                                                                                                                 |
 | `positions`        | A list of intervals when a position appears in the video. It may be empty.                                                                                                                                                                           |
@@ -63,7 +61,7 @@ Replace the example IDs and title with values for your videos. The fields mean:
 | `timeToSeconds`    | The end of the interval, in seconds from the beginning of the video.                                                                                                                                                                                 |
 | `boardOrientation` | The orientation label recorded for the board, as a string, or `null` if unknown.                                                                                                                                                                     |
 
-Each video needs `videoId`, `videoName`, `sourceUrl`, `thumbnailUrl`, and `positions`. `uploadDate` and `durationSeconds` are optional. Each position needs all four fields shown in the example.
+Each video needs `videoId`, `videoName`, `sourceUrl`, and `positions`. `uploadDate` and `durationSeconds` are optional. Each position needs all four fields shown in the example.
 
 Search results show one row per video, sorted by upload date with the newest first. Each row lists every matching interval as a clickable timestamp below the video title.
 
