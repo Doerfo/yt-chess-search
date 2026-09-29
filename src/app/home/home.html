@@ -1,37 +1,84 @@
 <main class="home-page">
   <header class="page-intro">
     <p class="eyebrow">Chess video search - Daniel Naroditsky</p>
-    <h1>Find chess games by position or PGN</h1>
+    <h1>Find chess games by position, PGN, or pawn structure</h1>
     <div class="intro-copy">
-      <p>
-        <strong>FEN search:</strong> Play moves or enter a FEN to find matching positions in videos.
-      </p>
-      <p><strong>PGN search:</strong> Paste a PGN to find where its positions appear in videos.</p>
+      <p>Play moves, enter a FEN, or paste a PGN to find matching positions in videos.</p>
+      <p>Arrange pawns to find games with the same pawn structure.</p>
     </div>
   </header>
 
   <section class="search-layout" aria-label="Chess video search">
     <div class="board-panel">
-      <h2>Play or load a position or game</h2>
-      @if (searchKind() === 'pgn') {
-        <p class="last-position-found" aria-live="polite">
-          @if (search.latestMatchedMoveIndex() !== null) {
-            Last position found:
-          } @else if (search.error()) {
-            Unable to find the last matching position.
-          } @else if (search.searching()) {
-            Finding the last matching position…
-          } @else {
-            No matching position found.
-          }
-        </p>
-      }
-      <app-search-board
-        [pgnMatchIndex]="searchKind() === 'pgn' ? search.latestMatchedMoveIndex() : null"
-        (positionChange)="onPositionChange($event)"
-        (pgnChange)="onPgnChange($event)"
-        (orientationChange)="onBoardOrientationChange($event)"
-      />
+      <div
+        class="search-tabs"
+        role="tablist"
+        aria-label="Search type"
+        (keydown)="onTabKeydown($event)"
+      >
+        <button
+          id="position-tab"
+          type="button"
+          role="tab"
+          aria-controls="position-panel"
+          [attr.aria-selected]="activeMode() === 'position'"
+          [attr.tabindex]="activeMode() === 'position' ? 0 : -1"
+          (click)="selectTab('position')"
+        >
+          Position
+        </button>
+        <button
+          id="pawn-tab"
+          type="button"
+          role="tab"
+          aria-controls="pawn-panel"
+          [attr.aria-selected]="activeMode() === 'pawnStructure'"
+          [attr.tabindex]="activeMode() === 'pawnStructure' ? 0 : -1"
+          (click)="selectTab('pawnStructure')"
+        >
+          Pawn structure
+        </button>
+      </div>
+      <div
+        id="position-panel"
+        role="tabpanel"
+        aria-labelledby="position-tab"
+        [hidden]="activeMode() !== 'position'"
+      >
+        <h2>Play or load a position or game</h2>
+        @if (searchKind() === 'pgn') {
+          <p class="last-position-found" aria-live="polite">
+            @if (search.latestMatchedMoveIndex() !== null) {
+              Last position found:
+            } @else if (search.error()) {
+              Unable to find the last matching position.
+            } @else if (search.searching()) {
+              Finding the last matching position…
+            } @else {
+              No matching position found.
+            }
+          </p>
+        }
+        <app-search-board
+          [pgnMatchIndex]="searchKind() === 'pgn' ? search.latestMatchedMoveIndex() : null"
+          (positionChange)="onPositionChange('position', $event)"
+          (pgnChange)="onPgnChange($event)"
+          (orientationChange)="onBoardOrientationChange('position', $event)"
+        />
+      </div>
+      <div
+        id="pawn-panel"
+        role="tabpanel"
+        aria-labelledby="pawn-tab"
+        [hidden]="activeMode() !== 'pawnStructure'"
+      >
+        <h2>Arrange your pawns</h2>
+        <app-pawn-board
+          (positionChange)="onPositionChange('pawnStructure', $event)"
+          (orientationChange)="onBoardOrientationChange('pawnStructure', $event)"
+          (scopeChange)="onPawnScopeChange($event)"
+        />
+      </div>
     </div>
 
     <section class="results-panel" aria-label="Search results">
@@ -44,13 +91,9 @@
         <span>Only games with same board rotation</span>
       </label>
       <app-search-results
+        [heading]="resultsHeading()"
         [videos]="search.results()"
-        [heading]="searchKind() === 'pgn' ? 'PGN matches' : 'Position matches'"
-        [prompt]="
-          searchKind() === 'pgn'
-            ? 'Load a PGN to find matching videos.'
-            : 'Search a position to find matching videos.'
-        "
+        [prompt]="resultsPrompt()"
         [total]="search.total()"
         [loading]="search.searched() && (search.status() === 'loading' || search.searching())"
         [error]="search.error()"

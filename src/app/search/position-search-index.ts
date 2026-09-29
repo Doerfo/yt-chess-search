@@ -4,12 +4,20 @@ import type {
   PositionOccurrence,
   PositionVideoMatch,
 } from './position-match';
+import { pawnStructureFromPlacement } from './pawn-structure';
 
 export const POSITION_DATA_SCHEMA_VERSION = 'yt-chess-search-channel-data/v1';
 export const POSITION_SEARCH_BATCH_SIZE = 50;
 export const PGN_SEARCH_BATCH_SIZE = 20;
+const PAWN_OCCURRENCE_GAP_SECONDS = 60;
 
 export type PositionIndex = ReadonlyMap<string, readonly PositionVideoMatch[]>;
+export interface SearchIndexes {
+  position: PositionIndex;
+  pawnStructure: PositionIndex;
+  whitePawns: PositionIndex;
+  blackPawns: PositionIndex;
+}
 
 interface SearchBatch {
   results: PositionVideoMatch[];
@@ -131,7 +139,66 @@ function compareVideos(left: PositionVideoMatch, right: PositionVideoMatch): num
   );
 }
 
-export function buildPositionIndex(data: unknown): PositionIndex {
+function addOccurrence(
+  index: Map<string, Map<string, PositionVideoMatch>>,
+  placement: string,
+  video: PositionVideoMatch,
+  occurrence: PositionOccurrence,
+): void {
+  let videos = index.get(placement);
+  if (!videos) {
+    videos = new Map();
+    index.set(placement, videos);
+  }
+  let match = videos.get(video.videoId);
+  if (!match) {
+    match = { ...video, positions: [] };
+    videos.set(video.videoId, match);
+  }
+  match.positions.push(occurrence);
+}
+
+function mergeOccurrences(positions: PositionOccurrence[]): PositionOccurrence[] {
+  const ordered = [...positions].sort(
+    (left, right) =>
+      compareText(left.boardOrientation ?? '', right.boardOrientation ?? '') ||
+      compareOccurrences(left, right),
+  );
+  const merged: PositionOccurrence[] = [];
+  for (const position of ordered) {
+    const last = merged.at(-1);
+    if (
+      last &&
+      last.boardOrientation === position.boardOrientation &&
+      position.timeFromSeconds - last.timeToSeconds <= PAWN_OCCURRENCE_GAP_SECONDS
+    ) {
+      last.timeToSeconds = Math.max(last.timeToSeconds, position.timeToSeconds);
+    } else {
+      merged.push({ ...position });
+    }
+  }
+  return merged.sort(compareOccurrences);
+}
+
+function finishIndex(
+  entries: Map<string, Map<string, PositionVideoMatch>>,
+  mergeTimes: boolean,
+): PositionIndex {
+  const index = new Map<string, PositionVideoMatch[]>();
+  for (const [placement, videosById] of entries) {
+    const videos = [...videosById.values()];
+    for (const video of videos) {
+      video.positions = mergeTimes
+        ? mergeOccurrences(video.positions)
+        : video.positions.sort(compareOccurrences);
+    }
+    videos.sort(compareVideos);
+    index.set(placement, videos);
+  }
+  return index;
+}
+
+export function buildSearchIndexes(data: unknown): SearchIndexes {
   if (!isRecord(data) || data['schemaVersion'] !== POSITION_DATA_SCHEMA_VERSION) {
     throw new Error('Position data has an unsupported schema version.');
   }
@@ -141,6 +208,9 @@ export function buildPositionIndex(data: unknown): PositionIndex {
   }
 
   const matchesByPlacement = new Map<string, Map<string, PositionVideoMatch>>();
+  const matchesByPawns = new Map<string, Map<string, PositionVideoMatch>>();
+  const matchesByWhitePawns = new Map<string, Map<string, PositionVideoMatch>>();
+  const matchesByBlackPawns = new Map<string, Map<string, PositionVideoMatch>>();
 
   for (const rawVideo of data['videos']) {
     if (!isRecord(rawVideo)) {
@@ -157,6 +227,8 @@ export function buildPositionIndex(data: unknown): PositionIndex {
       throw new Error(`Position data has an invalid positions list for video ${videoId}.`);
     }
 
+    const video = { videoId, videoName, sourceUrl, uploadDate, durationSeconds, positions: [] };
+
     for (const rawPosition of rawPositions) {
       if (!isRecord(rawPosition)) {
         throw new Error(`Position data contains an invalid position for video ${videoId}.`);
@@ -169,40 +241,33 @@ export function buildPositionIndex(data: unknown): PositionIndex {
         boardOrientation: requireNullableString(rawPosition, 'boardOrientation', 'position'),
       };
 
-      let videosForPlacement = matchesByPlacement.get(piecePlacement);
-      if (!videosForPlacement) {
-        videosForPlacement = new Map<string, PositionVideoMatch>();
-        matchesByPlacement.set(piecePlacement, videosForPlacement);
-      }
-
-      let videoMatch = videosForPlacement.get(videoId);
-      if (!videoMatch) {
-        videoMatch = {
-          videoId,
-          videoName,
-          sourceUrl,
-          uploadDate,
-          durationSeconds,
-          positions: [],
-        };
-        videosForPlacement.set(videoId, videoMatch);
-      }
-
-      videoMatch.positions.push(occurrence);
+      addOccurrence(matchesByPlacement, piecePlacement, video, occurrence);
+      addOccurrence(matchesByPawns, pawnStructureFromPlacement(piecePlacement), video, occurrence);
+      addOccurrence(
+        matchesByWhitePawns,
+        pawnStructureFromPlacement(piecePlacement, 'white'),
+        video,
+        occurrence,
+      );
+      addOccurrence(
+        matchesByBlackPawns,
+        pawnStructureFromPlacement(piecePlacement, 'black'),
+        video,
+        occurrence,
+      );
     }
   }
 
-  const index = new Map<string, PositionVideoMatch[]>();
-  for (const [piecePlacement, videosById] of matchesByPlacement) {
-    const videos = [...videosById.values()];
-    for (const video of videos) {
-      video.positions.sort(compareOccurrences);
-    }
-    videos.sort(compareVideos);
-    index.set(piecePlacement, videos);
-  }
+  return {
+    position: finishIndex(matchesByPlacement, false),
+    pawnStructure: finishIndex(matchesByPawns, true),
+    whitePawns: finishIndex(matchesByWhitePawns, true),
+    blackPawns: finishIndex(matchesByBlackPawns, true),
+  };
+}
 
-  return index;
+export function buildPositionIndex(data: unknown): PositionIndex {
+  return buildSearchIndexes(data).position;
 }
 
 export function readPositionBatch(

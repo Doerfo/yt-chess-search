@@ -31,26 +31,30 @@ declare module 'cm-chessboard' {
     type: string;
     squareFrom?: string;
     squareTo?: string;
+    reason?: string;
   }
 
   export class Chessboard {
-    constructor(context: HTMLElement, props?: {
-      position?: string;
-      orientation?: string;
-      responsive?: boolean;
-      assetsUrl?: string;
-      style?: {
-        cssClass?: string;
-        showCoordinates?: boolean;
-        borderType?: string;
-        aspectRatio?: number;
-        pieces?: {
-          type?: string;
-          file?: string;
-          tileSize?: number;
+    constructor(
+      context: HTMLElement,
+      props?: {
+        position?: string;
+        orientation?: string;
+        responsive?: boolean;
+        assetsUrl?: string;
+        style?: {
+          cssClass?: string;
+          showCoordinates?: boolean;
+          borderType?: string;
+          aspectRatio?: number;
+          pieces?: {
+            type?: string;
+            file?: string;
+            tileSize?: number;
+          };
         };
-      };
-    });
+      },
+    );
     enableMoveInput(handler: (event: MoveInputEvent) => boolean | void): void;
     cancelMoveInput(): void;
     addExtension(extensionClass: unknown, props?: Record<string, unknown>): void;
