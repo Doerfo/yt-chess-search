@@ -1,6 +1,6 @@
 <section class="results" aria-labelledby="search-results-heading">
   <header class="results__header">
-    <h2 id="search-results-heading" class="results__title">Position matches</h2>
+    <h2 id="search-results-heading" class="results__title">{{ heading() }}</h2>
     <span class="results__count" aria-live="polite">
       {{ total() }} {{ total() === 1 ? 'video' : 'videos' }}
     </span>

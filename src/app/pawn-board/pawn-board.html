@@ -1,0 +1,76 @@
+<section class="pawn-board" aria-label="Pawn structure editor">
+  <fieldset class="pawn-scope">
+    <legend>Search pawns</legend>
+    <label>
+      <input
+        type="radio"
+        name="pawn-scope"
+        value="both"
+        [checked]="selectedScope() === 'both'"
+        (change)="selectScope('both')"
+      />
+      Both colors
+    </label>
+    <label>
+      <input
+        type="radio"
+        name="pawn-scope"
+        value="white"
+        [checked]="selectedScope() === 'white'"
+        (change)="selectScope('white')"
+      />
+      White only
+    </label>
+    <label>
+      <input
+        type="radio"
+        name="pawn-scope"
+        value="black"
+        [checked]="selectedScope() === 'black'"
+        (change)="selectScope('black')"
+      />
+      Black only
+    </label>
+  </fieldset>
+  <div class="pawn-board__row">
+    <div
+      #boardHost
+      class="board"
+      role="img"
+      tabindex="0"
+      [attr.aria-label]="boardLabel()"
+      (click)="addPawnOnClick($event)"
+      (contextmenu)="removePawnOnRightClick($event)"
+      (mousedown)="startMouseTracking($event)"
+      (touchstart)="startTouchTracking($event)"
+    ></div>
+    <div class="pawn-palette" role="group" aria-label="Pawn color for placing">
+      <button
+        type="button"
+        class="pawn-palette__button"
+        aria-label="Select white pawn"
+        [attr.aria-pressed]="selectedColor() === 'w'"
+        (click)="selectColor('w')"
+      >
+        <svg viewBox="0 0 40 40" aria-hidden="true"><use [attr.href]="spriteUrl + '#wp'" /></svg>
+      </button>
+      <button
+        type="button"
+        class="pawn-palette__button"
+        aria-label="Select black pawn"
+        [attr.aria-pressed]="selectedColor() === 'b'"
+        (click)="selectColor('b')"
+      >
+        <svg viewBox="0 0 40 40" aria-hidden="true"><use [attr.href]="spriteUrl + '#bp'" /></svg>
+      </button>
+    </div>
+  </div>
+  <p class="pawn-board__hint">
+    Select a pawn on the right, then click a square to place it. Drag pawns to move them;
+    right-click or drag them off the board to remove them.
+  </p>
+  <div class="board-controls" aria-label="Pawn board controls">
+    <button type="button" class="board-control" (click)="reset()">Reset</button>
+    <button type="button" class="board-control" (click)="flip()">Flip board</button>
+  </div>
+</section>

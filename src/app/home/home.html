@@ -1,20 +1,69 @@
 <main class="home-page">
   <header class="page-intro">
     <p class="eyebrow">Chess video search - Daniel Naroditsky</p>
-    <h1>Find chess games by position</h1>
+    <h1>Find chess games by position or pawn structure</h1>
     <p class="intro-copy">
-      Play moves from the starting position to find matching games from chess videos. Open a result
-      to see where the position appeared.
+      Play moves or arrange pawns to find matching games from chess videos. Open a result to see
+      where it appeared.
     </p>
   </header>
 
-  <section class="search-layout" aria-label="Position search">
+  <section class="search-layout" aria-label="Chess video search">
     <div class="board-panel">
-      <h2>Play to your position</h2>
-      <app-search-board
-        (positionChange)="onPositionChange($event)"
-        (orientationChange)="onBoardOrientationChange($event)"
-      />
+      <div
+        class="search-tabs"
+        role="tablist"
+        aria-label="Search type"
+        (keydown)="onTabKeydown($event)"
+      >
+        <button
+          id="position-tab"
+          type="button"
+          role="tab"
+          aria-controls="position-panel"
+          [attr.aria-selected]="activeMode() === 'position'"
+          [attr.tabindex]="activeMode() === 'position' ? 0 : -1"
+          (click)="selectTab('position')"
+        >
+          Position
+        </button>
+        <button
+          id="pawn-tab"
+          type="button"
+          role="tab"
+          aria-controls="pawn-panel"
+          [attr.aria-selected]="activeMode() === 'pawnStructure'"
+          [attr.tabindex]="activeMode() === 'pawnStructure' ? 0 : -1"
+          (click)="selectTab('pawnStructure')"
+        >
+          Pawn structure
+        </button>
+      </div>
+      <div
+        id="position-panel"
+        role="tabpanel"
+        aria-labelledby="position-tab"
+        [hidden]="activeMode() !== 'position'"
+      >
+        <h2>Play to your position</h2>
+        <app-search-board
+          (positionChange)="onPositionChange('position', $event)"
+          (orientationChange)="onBoardOrientationChange('position', $event)"
+        />
+      </div>
+      <div
+        id="pawn-panel"
+        role="tabpanel"
+        aria-labelledby="pawn-tab"
+        [hidden]="activeMode() !== 'pawnStructure'"
+      >
+        <h2>Arrange your pawns</h2>
+        <app-pawn-board
+          (positionChange)="onPositionChange('pawnStructure', $event)"
+          (orientationChange)="onBoardOrientationChange('pawnStructure', $event)"
+          (scopeChange)="onPawnScopeChange($event)"
+        />
+      </div>
     </div>
 
     <section class="results-panel" aria-label="Search results">
@@ -27,6 +76,7 @@
         <span>Only games with same board rotation</span>
       </label>
       <app-search-results
+        [heading]="resultsHeading()"
         [videos]="search.results()"
         [total]="search.total()"
         [loading]="search.searched() && (search.status() === 'loading' || search.searching())"

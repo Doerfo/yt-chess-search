@@ -18,6 +18,7 @@ export class SearchResults {
   private previousVideoCount: number | undefined;
 
   readonly videos = input<readonly PositionVideoMatch[]>([]);
+  readonly heading = input('Position matches');
   readonly total = input(0);
   readonly loading = input(false);
   readonly error = input<string | null>(null);

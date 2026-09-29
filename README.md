@@ -1,6 +1,6 @@
 # YouTube Chess Search
 
-Search Daniel Naroditsky's YouTube videos for moments that show a chess position. Play moves from the starting position on the board, then browse matching moments by video and timestamp. Open a result to jump to that moment on YouTube.
+Search Daniel Naroditsky's YouTube videos for moments that show a chess position or pawn structure. In the Position tab, play moves from the starting position. In the Pawn structure tab, select a pawn color on the right and click squares to place pawns; drag pawns to move them, or right-click or drag them off the board to remove them. Choose whether to match both colors' pawns, only White's pawns, or only Black's pawns; all other pieces are ignored. Matching timestamps within 60 seconds of the previous matching interval are combined. Open a result to jump to that moment on YouTube.
 
 The app searches a JSON file in the browser. It does not need a search server or database, so the built site can be hosted as static files.
 

@@ -1,9 +1,10 @@
 import {
-  buildPositionIndex,
+  buildSearchIndexes,
   POSITION_SEARCH_BATCH_SIZE,
   readPositionBatch,
-  type PositionIndex,
+  type SearchIndexes,
 } from './position-search-index';
+import { pawnStructureFromPlacement } from './pawn-structure';
 import type {
   PositionSearchWorkerRequest,
   PositionSearchWorkerResponse,
@@ -18,7 +19,7 @@ interface PositionSearchWorkerScope {
 }
 
 const workerContext = self as unknown as PositionSearchWorkerScope;
-let positionIndex: PositionIndex | null = null;
+let indexes: SearchIndexes | null = null;
 
 function post(response: PositionSearchWorkerResponse): void {
   workerContext.postMessage(response);
@@ -32,7 +33,7 @@ async function initialize(url: string): Promise<void> {
     }
 
     const data: unknown = await response.json();
-    positionIndex = buildPositionIndex(data);
+    indexes = buildSearchIndexes(data);
     post({ type: 'ready' });
   } catch (error) {
     post({
@@ -48,14 +49,26 @@ workerContext.addEventListener('message', ({ data }: MessageEvent<PositionSearch
     return;
   }
 
-  if (!positionIndex) {
+  if (!indexes) {
     post({ type: 'error', message: 'Position search data is not ready.' });
     return;
   }
 
+  const index =
+    data.mode === 'position'
+      ? indexes.position
+      : data.pawnScope === 'white'
+        ? indexes.whitePawns
+        : data.pawnScope === 'black'
+          ? indexes.blackPawns
+          : indexes.pawnStructure;
+  const query =
+    data.mode === 'position'
+      ? data.piecePlacement
+      : pawnStructureFromPlacement(data.piecePlacement, data.pawnScope);
   const batch = readPositionBatch(
-    positionIndex,
-    data.piecePlacement,
+    index,
+    query,
     data.offset,
     POSITION_SEARCH_BATCH_SIZE,
     data.boardOrientation,

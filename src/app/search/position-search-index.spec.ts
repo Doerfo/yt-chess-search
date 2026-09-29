@@ -1,8 +1,11 @@
 import {
   buildPositionIndex,
+  buildSearchIndexes,
   POSITION_DATA_SCHEMA_VERSION,
   readPositionBatch,
 } from './position-search-index';
+import { STARTING_PAWN_PLACEMENT } from './pawn-structure';
+import { pawnStructureFromPlacement } from './pawn-structure';
 
 const START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
 
@@ -45,6 +48,85 @@ function dataset(videos: unknown[]) {
 }
 
 describe('position search index', () => {
+  it('matches only the selected pawn color while ignoring the other color', () => {
+    const blackMoved = 'rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR';
+    const whiteMoved = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR';
+    const indexes = buildSearchIndexes(
+      dataset([
+        video('one', 'One', [
+          position(START_POSITION, 0, 'white_bottom'),
+          position(blackMoved, 20, 'white_bottom'),
+          position(whiteMoved, 30, 'white_bottom'),
+        ]),
+      ]),
+    );
+    const whiteKey = pawnStructureFromPlacement(START_POSITION, 'white');
+    const blackKey = pawnStructureFromPlacement(START_POSITION, 'black');
+
+    expect(readPositionBatch(indexes.whitePawns, whiteKey, 0).results[0].positions).toEqual([
+      { timeFromSeconds: 0, timeToSeconds: 21, boardOrientation: 'white_bottom' },
+    ]);
+    expect(readPositionBatch(indexes.blackPawns, blackKey, 0).results[0].positions).toEqual([
+      { timeFromSeconds: 0, timeToSeconds: 31, boardOrientation: 'white_bottom' },
+    ]);
+    expect(
+      readPositionBatch(indexes.pawnStructure, STARTING_PAWN_PLACEMENT, 0).results[0].positions,
+    ).toHaveLength(1);
+  });
+  it('matches exact pawn squares despite other pieces and merges touching times', () => {
+    const indexes = buildSearchIndexes(
+      dataset([
+        video('one', 'One', [
+          { ...position(START_POSITION, 10, 'white_bottom'), timeToSeconds: 12 },
+          {
+            ...position('rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R', 12, 'white_bottom'),
+            timeToSeconds: 15,
+          },
+          position(START_POSITION, 11, 'black_bottom'),
+          position('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR', 20, 'white_bottom'),
+        ]),
+      ]),
+    );
+
+    const all = readPositionBatch(indexes.pawnStructure, STARTING_PAWN_PLACEMENT, 0);
+    expect(all.total).toBe(1);
+    expect(all.results[0].positions).toEqual([
+      { timeFromSeconds: 10, timeToSeconds: 15, boardOrientation: 'white_bottom' },
+      { timeFromSeconds: 11, timeToSeconds: 12, boardOrientation: 'black_bottom' },
+    ]);
+    expect(
+      readPositionBatch(indexes.pawnStructure, STARTING_PAWN_PLACEMENT, 0, 50, 'white_bottom')
+        .results[0].positions,
+    ).toHaveLength(1);
+    expect(
+      readPositionBatch(indexes.position, START_POSITION, 0).results[0].positions,
+    ).toHaveLength(2);
+  });
+
+  it('combines pawn timestamps through consecutive gaps of up to 60 seconds', () => {
+    const indexes = buildSearchIndexes(
+      dataset([
+        video('one', 'One', [
+          { ...position(START_POSITION, 0, 'white_bottom'), timeToSeconds: 2 },
+          { ...position(START_POSITION, 62, 'white_bottom'), timeToSeconds: 63 },
+          { ...position(START_POSITION, 123, 'white_bottom'), timeToSeconds: 124 },
+          { ...position(START_POSITION, 185, 'white_bottom'), timeToSeconds: 186 },
+          position(START_POSITION, 70, 'black_bottom'),
+        ]),
+      ]),
+    );
+
+    expect(
+      readPositionBatch(indexes.pawnStructure, STARTING_PAWN_PLACEMENT, 0).results[0].positions,
+    ).toEqual([
+      { timeFromSeconds: 0, timeToSeconds: 124, boardOrientation: 'white_bottom' },
+      { timeFromSeconds: 70, timeToSeconds: 71, boardOrientation: 'black_bottom' },
+      { timeFromSeconds: 185, timeToSeconds: 186, boardOrientation: 'white_bottom' },
+    ]);
+    expect(
+      readPositionBatch(indexes.position, START_POSITION, 0).results[0].positions,
+    ).toHaveLength(5);
+  });
   it('groups matching intervals by video and sorts videos newest first', () => {
     const index = buildPositionIndex(
       dataset([

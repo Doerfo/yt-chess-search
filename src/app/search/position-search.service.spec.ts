@@ -108,6 +108,65 @@ describe('PositionSearchService', () => {
     expect(service.hasMore()).toBe(false);
   });
 
+  it('sends pawn search mode and ignores results from the previous tab', () => {
+    worker.emit({ type: 'ready' });
+    service.search('game-placement');
+    const gameRequest = worker.messages.at(-1);
+    service.search('pawn-placement', null, 'pawnStructure');
+    const pawnRequest = worker.messages.at(-1);
+
+    expect(gameRequest).toMatchObject({ mode: 'position', pawnScope: 'both' });
+    expect(pawnRequest).toMatchObject({ mode: 'pawnStructure', pawnScope: 'both' });
+    if (gameRequest?.type !== 'search' || pawnRequest?.type !== 'search') {
+      throw new Error('Expected search requests.');
+    }
+    worker.emit({
+      type: 'results',
+      requestId: gameRequest.requestId,
+      offset: 0,
+      total: 1,
+      results: [match('old')],
+    });
+    expect(service.results()).toEqual([]);
+    worker.emit({
+      type: 'results',
+      requestId: pawnRequest.requestId,
+      offset: 0,
+      total: 1,
+      results: [match('pawn')],
+    });
+    expect(service.results().map((video) => video.videoId)).toEqual(['pawn']);
+  });
+
+  it('restarts a pawn query when the selected pawn color changes', () => {
+    worker.emit({ type: 'ready' });
+    service.search('placement', null, 'pawnStructure', 'white');
+    const whiteRequest = worker.messages.at(-1);
+    service.search('placement', null, 'pawnStructure', 'black');
+    const blackRequest = worker.messages.at(-1);
+    expect(whiteRequest).toMatchObject({ pawnScope: 'white' });
+    expect(blackRequest).toMatchObject({ pawnScope: 'black' });
+    if (whiteRequest?.type !== 'search' || blackRequest?.type !== 'search') {
+      throw new Error('Expected search requests.');
+    }
+    worker.emit({
+      type: 'results',
+      requestId: whiteRequest.requestId,
+      offset: 0,
+      total: 1,
+      results: [match('white')],
+    });
+    expect(service.results()).toEqual([]);
+    worker.emit({
+      type: 'results',
+      requestId: blackRequest.requestId,
+      offset: 0,
+      total: 1,
+      results: [match('black')],
+    });
+    expect(service.results().map((video) => video.videoId)).toEqual(['black']);
+  });
+
   it('ignores stale results and appends later batches', () => {
     worker.emit({ type: 'ready' });
     service.search('old-placement');
