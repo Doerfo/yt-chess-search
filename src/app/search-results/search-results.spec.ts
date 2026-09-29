@@ -69,4 +69,31 @@ describe('SearchResults', () => {
     expect(result.querySelector('button')).toBeNull();
     expect(result.querySelectorAll('.results__time-link')).toHaveLength(1);
   });
+
+  it('shows move offsets only for earlier PGN positions', async () => {
+    fixture.componentRef.setInput('heading', 'PGN matches');
+    fixture.componentRef.setInput('videos', [
+      { ...video('latest', [position(5, 7)]), movesBeforeLatestMatch: 0 },
+      { ...video('previous', [position(8, 10)]), movesBeforeLatestMatch: 1 },
+      { ...video('earlier', [position(11, 13)]), movesBeforeLatestMatch: 3 },
+    ]);
+    await fixture.whenStable();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const rows = element.querySelectorAll('.results__item');
+    expect(element.querySelector('h2')?.textContent).toBe('PGN matches');
+    expect(rows[0].querySelector('.results__move-offset')).toBeNull();
+    expect(
+      rows[1].querySelector('.results__move-offset')?.textContent?.replace(/\s+/g, ' ').trim(),
+    ).toBe('-1 half move from last position found');
+    expect(rows[1].querySelector('.results__move-offset')?.getAttribute('aria-label')).toBe(
+      '-1 half move from last position found',
+    );
+    expect(
+      rows[2].querySelector('.results__move-offset')?.textContent?.replace(/\s+/g, ' ').trim(),
+    ).toBe('-3 half moves from last position found');
+    expect(rows[2].querySelector('.results__move-offset')?.getAttribute('aria-label')).toBe(
+      '-3 half moves from last position found',
+    );
+  });
 });

@@ -1,6 +1,6 @@
 # YouTube Chess Search
 
-Search Daniel Naroditsky's YouTube videos for moments that show a chess position or pawn structure. In the Position tab, play moves from the starting position. In the Pawn structure tab, select a pawn color on the right and click squares to place pawns; drag pawns to move them, or right-click or drag them off the board to remove them. Choose whether to match both colors' pawns, only White's pawns, or only Black's pawns; all other pieces are ignored. Matching timestamps within 60 seconds of the previous matching interval are combined. Open a result to jump to that moment on YouTube.
+Search Daniel Naroditsky's YouTube videos for moments that show a chess position or pawn structure. In the Position tab, play moves or load a FEN or PGN in the field below the board. In the Pawn structure tab, select a pawn color on the right and click squares to place pawns; drag pawns to move them, or right-click or drag them off the board to remove them. Choose whether to match both colors' pawns, only White's pawns, or only Black's pawns; all other pieces are ignored. Matching pawn timestamps within 60 seconds of the previous matching interval are combined. Open a result to jump to that moment on YouTube.
 
 The app searches a JSON file in the browser. It does not need a search server or database, so the built site can be hosted as static files.
 
@@ -64,6 +64,8 @@ Replace the example IDs and title with values for your videos. The fields mean:
 Each video needs `videoId`, `videoName`, `sourceUrl`, and `positions`. `uploadDate` and `durationSeconds` are optional. Each position needs all four fields shown in the example.
 
 Search results show one row per video, sorted by upload date with the newest first. Each row lists every matching interval as a clickable timestamp below the video title.
+
+The board's FEN or PGN field accepts a single game's main line, including PGN headers, comments, and setup FENs. PGN search checks the position after each played move, beginning with the final position. Each video appears once at its latest matching position. Results are ordered by how few half moves precede the latest position found in any video; ties use the same upload date, title, and video ID order as Position search. A `-1 half move from last position found` counter means the match is one ply earlier; `-2` means two plies earlier. The board shows the latest found position, and Back and Forward step through the game. PGN results load 20 videos at a time; Position and Pawn structure results load 50.
 
 After saving an updated data file, run the app locally to see the new search results:
 

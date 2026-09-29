@@ -100,6 +100,7 @@
   background: #fff;
   color: #26382d;
   font: inherit;
+  resize: vertical;
 }
 
 .fen-input:focus-visible {

@@ -1,11 +1,11 @@
 <main class="home-page">
   <header class="page-intro">
     <p class="eyebrow">Chess video search - Daniel Naroditsky</p>
-    <h1>Find chess games by position or pawn structure</h1>
-    <p class="intro-copy">
-      Play moves or arrange pawns to find matching games from chess videos. Open a result to see
-      where it appeared.
-    </p>
+    <h1>Find chess games by position, PGN, or pawn structure</h1>
+    <div class="intro-copy">
+      <p>Play moves, enter a FEN, or paste a PGN to find matching positions in videos.</p>
+      <p>Arrange pawns to find games with the same pawn structure.</p>
+    </div>
   </header>
 
   <section class="search-layout" aria-label="Chess video search">
@@ -45,9 +45,24 @@
         aria-labelledby="position-tab"
         [hidden]="activeMode() !== 'position'"
       >
-        <h2>Play to your position</h2>
+        <h2>Play or load a position or game</h2>
+        @if (searchKind() === 'pgn') {
+          <p class="last-position-found" aria-live="polite">
+            @if (search.latestMatchedMoveIndex() !== null) {
+              Last position found:
+            } @else if (search.error()) {
+              Unable to find the last matching position.
+            } @else if (search.searching()) {
+              Finding the last matching position…
+            } @else {
+              No matching position found.
+            }
+          </p>
+        }
         <app-search-board
+          [pgnMatchIndex]="searchKind() === 'pgn' ? search.latestMatchedMoveIndex() : null"
           (positionChange)="onPositionChange('position', $event)"
+          (pgnChange)="onPgnChange($event)"
           (orientationChange)="onBoardOrientationChange('position', $event)"
         />
       </div>
@@ -78,6 +93,7 @@
       <app-search-results
         [heading]="resultsHeading()"
         [videos]="search.results()"
+        [prompt]="resultsPrompt()"
         [total]="search.total()"
         [loading]="search.searched() && (search.status() === 'loading' || search.searching())"
         [error]="search.error()"

@@ -17,7 +17,16 @@ export interface SearchWorkerQueryMessage {
   pawnScope: PawnSearchScope;
 }
 
-export type PositionSearchWorkerRequest = InitializeSearchWorkerMessage | SearchWorkerQueryMessage;
+export interface PgnWorkerQueryMessage {
+  type: 'searchPgn';
+  requestId: number;
+  piecePlacements: string[];
+  offset: number;
+  boardOrientation: BoardOrientation | null;
+}
+
+export type PositionSearchWorkerRequest =
+  InitializeSearchWorkerMessage | SearchWorkerQueryMessage | PgnWorkerQueryMessage;
 
 export interface PositionSearchWorkerReadyMessage {
   type: 'ready';
@@ -29,6 +38,7 @@ export interface PositionSearchWorkerResultsMessage {
   offset: number;
   total: number;
   results: PositionVideoMatch[];
+  latestMatchedMoveIndex?: number | null;
 }
 
 export interface PositionSearchWorkerErrorMessage {

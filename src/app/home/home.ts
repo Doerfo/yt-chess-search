@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { SearchBoard } from '../search-board/search-board';
 import { PawnBoard } from '../pawn-board/pawn-board';
 import type { BoardOrientation } from '../search/position-match';
-import { PositionSearchService } from '../search/position-search.service';
+import { PositionSearchService } from '../search';
 import type { SearchMode } from '../search/search-mode';
 import { STARTING_PAWN_PLACEMENT, type PawnSearchScope } from '../search/pawn-structure';
 import { SearchResults } from '../search-results/search-results';
@@ -16,13 +16,22 @@ import { SearchResults } from '../search-results/search-results';
 export class Home {
   protected readonly search = inject(PositionSearchService);
   protected readonly activeMode = signal<SearchMode>('position');
+  protected readonly searchKind = signal<'position' | 'pgn'>('position');
   protected readonly pawnScope = signal<PawnSearchScope>('both');
   protected readonly resultsHeading = computed(() => {
-    if (this.activeMode() === 'position') return 'Position matches';
+    if (this.activeMode() === 'position') {
+      return this.searchKind() === 'pgn' ? 'PGN matches' : 'Position matches';
+    }
     const scope = this.pawnScope();
     return scope === 'both'
       ? 'Pawn structure matches'
       : `${scope === 'white' ? 'White' : 'Black'} pawn structure matches`;
+  });
+  protected readonly resultsPrompt = computed(() => {
+    if (this.activeMode() === 'pawnStructure') return 'Arrange pawns to find matching videos.';
+    return this.searchKind() === 'pgn'
+      ? 'Load a PGN to find matching videos.'
+      : 'Search a position to find matching videos.';
   });
   private readonly positions: Record<SearchMode, string | null> = {
     position: null,
@@ -32,6 +41,7 @@ export class Home {
     position: 'white_bottom',
     pawnStructure: 'white_bottom',
   };
+  private pgnPlacements: string[] | null = null;
   private sameBoardRotationOnly = false;
 
   protected selectTab(mode: SearchMode): void {
@@ -58,7 +68,17 @@ export class Home {
 
   protected onPositionChange(mode: SearchMode, position: string | null): void {
     this.positions[mode] = position;
+    if (mode === 'position') {
+      this.pgnPlacements = null;
+      this.searchKind.set('position');
+    }
     if (this.activeMode() === mode) this.searchCurrent();
+  }
+
+  protected onPgnChange(piecePlacements: string[]): void {
+    this.pgnPlacements = piecePlacements;
+    this.searchKind.set('pgn');
+    if (this.activeMode() === 'position') this.searchCurrent();
   }
 
   protected onBoardOrientationChange(mode: SearchMode, orientation: BoardOrientation): void {
@@ -85,6 +105,10 @@ export class Home {
 
   private searchCurrent(): void {
     const mode = this.activeMode();
+    if (mode === 'position' && this.pgnPlacements) {
+      this.search.searchPgn(this.pgnPlacements, this.searchOrientation());
+      return;
+    }
     this.search.search(this.positions[mode], this.searchOrientation(), mode, this.pawnScope());
   }
 

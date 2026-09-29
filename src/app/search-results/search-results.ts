@@ -1,5 +1,5 @@
 import { Component, effect, input, output, signal } from '@angular/core';
-import type { PositionOccurrence, PositionVideoMatch } from '../search/position-match';
+import type { PositionOccurrence, PositionVideoMatch } from '../search';
 import {
   buildTimestampedVideoUrl,
   formatUploadDate,
@@ -19,6 +19,7 @@ export class SearchResults {
 
   readonly videos = input<readonly PositionVideoMatch[]>([]);
   readonly heading = input('Position matches');
+  readonly prompt = input('Search a position to find matching videos.');
   readonly total = input(0);
   readonly loading = input(false);
   readonly error = input<string | null>(null);

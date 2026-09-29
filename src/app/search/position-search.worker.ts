@@ -1,6 +1,7 @@
 import {
   buildSearchIndexes,
   POSITION_SEARCH_BATCH_SIZE,
+  readPgnBatch,
   readPositionBatch,
   type SearchIndexes,
 } from './position-search-index';
@@ -51,6 +52,25 @@ workerContext.addEventListener('message', ({ data }: MessageEvent<PositionSearch
 
   if (!indexes) {
     post({ type: 'error', message: 'Position search data is not ready.' });
+    return;
+  }
+
+  if (data.type === 'searchPgn') {
+    const batch = readPgnBatch(
+      indexes.position,
+      data.piecePlacements,
+      data.offset,
+      undefined,
+      data.boardOrientation,
+    );
+    post({
+      type: 'results',
+      requestId: data.requestId,
+      offset: data.offset,
+      total: batch.total,
+      results: batch.results,
+      latestMatchedMoveIndex: batch.latestMatchedMoveIndex,
+    });
     return;
   }
 
