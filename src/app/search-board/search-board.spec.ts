@@ -70,15 +70,18 @@ describe('SearchBoard', () => {
   let fixture: ComponentFixture<SearchBoard>;
   let board: MockBoard;
   let emittedPositions: Array<string | null>;
+  let emittedPgns: string[][];
 
   beforeEach(async () => {
     chessboardMock.lastBoard = null;
     emittedPositions = [];
+    emittedPgns = [];
     await TestBed.configureTestingModule({ imports: [SearchBoard] }).compileComponents();
     fixture = TestBed.createComponent(SearchBoard);
     fixture.componentInstance.positionChange.subscribe((position) =>
       emittedPositions.push(position),
     );
+    fixture.componentInstance.pgnChange.subscribe((placements) => emittedPgns.push(placements));
     await fixture.whenStable();
     board = chessboardMock.lastBoard!;
   });
@@ -88,7 +91,7 @@ describe('SearchBoard', () => {
   async function submitFen(fen: string, viaButton = true): Promise<void> {
     const host = fixture.nativeElement as HTMLElement;
     const form = host.querySelector<HTMLFormElement>('.fen-form')!;
-    const input = form.querySelector<HTMLInputElement>('input')!;
+    const input = form.querySelector<HTMLTextAreaElement>('textarea')!;
     input.value = fen;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     if (viaButton) {
@@ -167,9 +170,9 @@ describe('SearchBoard', () => {
     expect(board.position).toBe(position);
     expect(emittedPositions).toEqual(emissions);
     expect(host.querySelector('.fen-error')?.textContent).toContain('Enter a valid FEN');
-    expect(host.querySelector<HTMLInputElement>('.fen-input')?.getAttribute('aria-invalid')).toBe(
-      'true',
-    );
+    expect(
+      host.querySelector<HTMLTextAreaElement>('.fen-input')?.getAttribute('aria-invalid'),
+    ).toBe('true');
     expect(
       Array.from(host.querySelectorAll<HTMLButtonElement>('.board-controls button')).find(
         (button) => button.textContent?.trim() === 'Back',
@@ -190,6 +193,65 @@ describe('SearchBoard', () => {
 
     board.input('moveInputFinished');
     expect(board.position).toContain('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR');
+  });
+
+  it('loads PGN into board history, selects the latest found move, and keeps search while browsing', async () => {
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector<HTMLTextAreaElement>('.fen-input')?.rows).toBe(2);
+    await submitFen('[Event "Game"]\n\n1. e4 e5 2. Nf3 *');
+
+    expect(emittedPgns).toHaveLength(1);
+    expect(emittedPgns[0]).toHaveLength(3);
+    expect(board.position).toContain('rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R');
+    expect(emittedPositions).toEqual([null]);
+
+    fixture.componentRef.setInput('pgnMatchIndex', 1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(board.position).toContain('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR');
+
+    const button = (label: string) =>
+      Array.from(host.querySelectorAll<HTMLButtonElement>('.board-controls button')).find(
+        (candidate) => candidate.textContent?.trim() === label,
+      )!;
+    button('Back').click();
+    await fixture.whenStable();
+    expect(board.position).toContain('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR');
+    button('Forward').click();
+    button('Forward').click();
+    await fixture.whenStable();
+    expect(board.position).toContain('rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R');
+    expect(emittedPositions).toEqual([null]);
+
+    expect(board.input('validateMoveInput', 'b8', 'c6')).toBe(true);
+    board.input('moveInputFinished');
+    expect(emittedPositions.at(-1)).toContain('r1bqkbnr/pppp1ppp/2n5');
+  });
+
+  it('keeps the current board and search after an invalid PGN', async () => {
+    await submitFen('1. e4 e5');
+    const before = board.position;
+    await submitFen('1. e4 impossible');
+    expect(board.position).toBe(before);
+    expect(emittedPgns).toHaveLength(1);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.fen-error')?.textContent,
+    ).toContain('valid FEN');
+  });
+
+  it('navigates back to a PGN setup FEN', async () => {
+    await submitFen('[SetUp "1"]\n[FEN "8/8/8/8/8/4k3/8/6K1 w - - 0 1"]\n\n1. Kf1 *');
+    expect(board.position).toContain('8/8/8/8/8/4k3/8/5K2');
+
+    const back = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+        '.board-controls button',
+      ),
+    ).find((button) => button.textContent?.trim() === 'Back')!;
+    back.click();
+    await fixture.whenStable();
+    expect(board.position).toBe('8/8/8/8/8/4k3/8/6K1 w - - 0 1');
+    expect(emittedPositions).toEqual([null]);
   });
 
   it('navigates board history, drops the forward branch after a new move, and reset clears history', async () => {

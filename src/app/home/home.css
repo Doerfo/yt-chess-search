@@ -45,11 +45,17 @@ h1 {
 }
 
 .intro-copy {
+  display: grid;
+  gap: 0.25rem;
   max-width: 43rem;
   margin: 1rem 0 0;
   color: var(--muted);
   font-size: clamp(0.98rem, 1.25vw, 1.1rem);
   line-height: 1.65;
+}
+
+.intro-copy p {
+  margin: 0;
 }
 
 .search-layout {
@@ -78,6 +84,13 @@ h1 {
   font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.last-position-found {
+  margin: -0.45rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .results-panel {

@@ -13,6 +13,11 @@ export interface PositionVideoMatch {
   uploadDate: string | null;
   durationSeconds: number | null;
   positions: PositionOccurrence[];
+  movesBeforeLatestMatch?: number;
+}
+
+export interface PgnVideoMatch extends PositionVideoMatch {
+  movesBeforeLatestMatch: number;
 }
 
 export type PositionSearchStatus = 'loading' | 'ready' | 'error';

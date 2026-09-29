@@ -1,13 +1,25 @@
-import type { BoardOrientation, PositionOccurrence, PositionVideoMatch } from './position-match';
+import type {
+  BoardOrientation,
+  PgnVideoMatch,
+  PositionOccurrence,
+  PositionVideoMatch,
+} from './position-match';
 
 export const POSITION_DATA_SCHEMA_VERSION = 'yt-chess-search-channel-data/v1';
 export const POSITION_SEARCH_BATCH_SIZE = 50;
+export const PGN_SEARCH_BATCH_SIZE = 20;
 
 export type PositionIndex = ReadonlyMap<string, readonly PositionVideoMatch[]>;
 
 interface SearchBatch {
   results: PositionVideoMatch[];
   total: number;
+}
+
+interface PgnSearchBatch {
+  results: PgnVideoMatch[];
+  total: number;
+  latestMatchedMoveIndex: number | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -222,5 +234,50 @@ export function readPositionBatch(
             ),
           })),
     total: matchingVideos.length,
+  };
+}
+
+export function readPgnBatch(
+  index: PositionIndex,
+  piecePlacements: readonly string[],
+  offset: number,
+  limit = PGN_SEARCH_BATCH_SIZE,
+  boardOrientation: BoardOrientation | null = null,
+): PgnSearchBatch {
+  const latestMatchByVideo = new Map<string, PgnVideoMatch>();
+
+  for (let moveIndex = piecePlacements.length - 1; moveIndex >= 0; moveIndex -= 1) {
+    const videos = index.get(piecePlacements[moveIndex]) ?? [];
+    for (const video of videos) {
+      if (latestMatchByVideo.has(video.videoId)) continue;
+
+      const positions =
+        boardOrientation === null
+          ? video.positions
+          : video.positions.filter((position) => position.boardOrientation === boardOrientation);
+      if (positions.length === 0) continue;
+
+      latestMatchByVideo.set(video.videoId, {
+        ...video,
+        positions,
+        movesBeforeLatestMatch: piecePlacements.length - moveIndex - 1,
+      });
+    }
+  }
+
+  const videos = [...latestMatchByVideo.values()].sort(
+    (left, right) =>
+      left.movesBeforeLatestMatch - right.movesBeforeLatestMatch || compareVideos(left, right),
+  );
+  const latestOffset = videos[0]?.movesBeforeLatestMatch ?? 0;
+  const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
+  const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.trunc(limit)) : 0;
+  return {
+    results: videos.slice(safeOffset, safeOffset + safeLimit).map((video) => ({
+      ...video,
+      movesBeforeLatestMatch: video.movesBeforeLatestMatch - latestOffset,
+    })),
+    total: videos.length,
+    latestMatchedMoveIndex: videos.length ? piecePlacements.length - latestOffset - 1 : null,
   };
 }

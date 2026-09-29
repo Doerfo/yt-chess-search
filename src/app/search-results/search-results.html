@@ -1,6 +1,6 @@
 <section class="results" aria-labelledby="search-results-heading">
   <header class="results__header">
-    <h2 id="search-results-heading" class="results__title">Position matches</h2>
+    <h2 id="search-results-heading" class="results__title">{{ heading() }}</h2>
     <span class="results__count" aria-live="polite">
       {{ total() }} {{ total() === 1 ? 'video' : 'videos' }}
     </span>
@@ -22,6 +22,22 @@
                   {{ video.videoName }}
                 </a>
               </h3>
+              @if (video.movesBeforeLatestMatch !== undefined && video.movesBeforeLatestMatch > 0) {
+                <span
+                  class="results__move-offset"
+                  [attr.aria-label]="
+                    '-' +
+                    video.movesBeforeLatestMatch +
+                    ' half ' +
+                    (video.movesBeforeLatestMatch === 1 ? 'move' : 'moves') +
+                    ' from last position found'
+                  "
+                >
+                  -{{ video.movesBeforeLatestMatch }} half
+                  {{ video.movesBeforeLatestMatch === 1 ? 'move' : 'moves' }} from last position
+                  found
+                </span>
+              }
               @let uploadDate = formatDate(video.uploadDate);
               @let duration = formatDuration(video.durationSeconds);
               @if (uploadDate || duration) {
@@ -98,7 +114,7 @@
   } @else if (loading()) {
     <p class="results__state" role="status">Searching for matching videos…</p>
   } @else if (!searched()) {
-    <p class="results__state">Search a position to find matching videos.</p>
+    <p class="results__state">{{ prompt() }}</p>
   } @else {
     <p class="results__state" role="status">No matching videos were found.</p>
   }
