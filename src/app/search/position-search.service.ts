@@ -1,10 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, inject, signal, type Signal } from '@angular/core';
-import type {
-  BoardOrientation,
-  PositionSearchStatus,
-  PositionVideoMatch,
-} from './position-match';
+import type { BoardOrientation, PositionSearchStatus, PositionVideoMatch } from './position-match';
 import type {
   PositionSearchWorkerResponse,
   PositionSearchWorkerResultsMessage,
@@ -12,10 +8,13 @@ import type {
 
 interface ActiveRequest {
   requestId: number;
-  piecePlacement: string;
+  query: SearchQuery;
   offset: number;
   append: boolean;
 }
+
+type SearchQuery =
+  { type: 'search'; piecePlacement: string } | { type: 'searchPgn'; piecePlacements: string[] };
 
 @Injectable({ providedIn: 'root' })
 export class PositionSearchService {
@@ -27,6 +26,7 @@ export class PositionSearchService {
   private readonly _searched = signal(false);
   private readonly _searching = signal(false);
   private readonly _hasMore = signal(false);
+  private readonly _latestMatchedMoveIndex = signal<number | null>(null);
 
   readonly status: Signal<PositionSearchStatus> = this._status.asReadonly();
   readonly error: Signal<string | null> = this._error.asReadonly();
@@ -35,10 +35,12 @@ export class PositionSearchService {
   readonly searched: Signal<boolean> = this._searched.asReadonly();
   readonly searching: Signal<boolean> = this._searching.asReadonly();
   readonly hasMore: Signal<boolean> = this._hasMore.asReadonly();
+  readonly latestMatchedMoveIndex: Signal<number | null> =
+    this._latestMatchedMoveIndex.asReadonly();
 
   private worker: Worker | null = null;
   private workerReady = false;
-  private currentQuery: string | null = null;
+  private currentQuery: SearchQuery | null = null;
   private currentBoardOrientation: BoardOrientation | null = null;
   private nextRequestId = 0;
   private activeRequest: ActiveRequest | null = null;
@@ -48,13 +50,32 @@ export class PositionSearchService {
   }
 
   search(piecePlacement: string | null, boardOrientation: BoardOrientation | null = null): void {
-    this.currentQuery = piecePlacement?.trim() || null;
+    const placement = piecePlacement?.trim();
+    this.setQuery(
+      placement ? { type: 'search', piecePlacement: placement } : null,
+      boardOrientation,
+    );
+  }
+
+  searchPgn(
+    piecePlacements: readonly string[] | null,
+    boardOrientation: BoardOrientation | null = null,
+  ): void {
+    this.setQuery(
+      piecePlacements?.length ? { type: 'searchPgn', piecePlacements: [...piecePlacements] } : null,
+      boardOrientation,
+    );
+  }
+
+  private setQuery(query: SearchQuery | null, boardOrientation: BoardOrientation | null): void {
+    this.currentQuery = query;
     this.currentBoardOrientation = boardOrientation;
     this._searched.set(this.currentQuery !== null);
     this._searching.set(this.currentQuery !== null && this._status() !== 'error');
     this._results.set([]);
     this._total.set(0);
     this._hasMore.set(false);
+    this._latestMatchedMoveIndex.set(null);
     this.activeRequest = null;
     this.nextRequestId += 1;
 
@@ -90,6 +111,7 @@ export class PositionSearchService {
     this._results.set([]);
     this._total.set(0);
     this._hasMore.set(false);
+    this._latestMatchedMoveIndex.set(null);
     this._searching.set(this.currentQuery !== null);
     this._status.set('loading');
     this.startWorker();
@@ -154,7 +176,7 @@ export class PositionSearchService {
     if (
       !request ||
       request.requestId !== message.requestId ||
-      request.piecePlacement !== this.currentQuery ||
+      request.query !== this.currentQuery ||
       request.offset !== message.offset
     ) {
       return;
@@ -169,6 +191,9 @@ export class PositionSearchService {
     this._results.set(results);
     this._total.set(message.total);
     this._hasMore.set(results.length < message.total);
+    if (!request.append) {
+      this._latestMatchedMoveIndex.set(message.latestMatchedMoveIndex ?? null);
+    }
     this._searching.set(false);
     this.activeRequest = null;
   }
@@ -181,14 +206,24 @@ export class PositionSearchService {
 
     const requestId = ++this.nextRequestId;
     this._searching.set(true);
-    this.activeRequest = { requestId, piecePlacement: query, offset, append };
-    this.worker.postMessage({
-      type: 'search',
-      requestId,
-      piecePlacement: query,
-      offset,
-      boardOrientation: this.currentBoardOrientation,
-    });
+    this.activeRequest = { requestId, query, offset, append };
+    this.worker.postMessage(
+      query.type === 'search'
+        ? {
+            type: 'search',
+            requestId,
+            piecePlacement: query.piecePlacement,
+            offset,
+            boardOrientation: this.currentBoardOrientation,
+          }
+        : {
+            type: 'searchPgn',
+            requestId,
+            piecePlacements: query.piecePlacements,
+            offset,
+            boardOrientation: this.currentBoardOrientation,
+          },
+    );
   }
 
   private fail(message: string): void {

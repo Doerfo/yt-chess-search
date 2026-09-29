@@ -179,4 +179,65 @@ describe('PositionSearchService', () => {
       { type: 'search', piecePlacement: 'queued-placement', offset: 0 },
     ]);
   });
+
+  it('queues the latest PGN query, ignores stale replies, and pages its results', () => {
+    service.searchPgn(['first', 'last']);
+    worker.emit({ type: 'ready' });
+    const firstRequest = worker.messages.at(-1);
+    expect(firstRequest).toMatchObject({
+      type: 'searchPgn',
+      piecePlacements: ['first', 'last'],
+      offset: 0,
+    });
+    if (firstRequest?.type !== 'searchPgn') throw new Error('Expected PGN request.');
+
+    service.searchPgn(['new-final'], 'black_bottom');
+    const latestRequest = worker.messages.at(-1);
+    expect(latestRequest).toMatchObject({
+      type: 'searchPgn',
+      piecePlacements: ['new-final'],
+      boardOrientation: 'black_bottom',
+    });
+    if (latestRequest?.type !== 'searchPgn') throw new Error('Expected latest PGN request.');
+
+    worker.emit({
+      type: 'results',
+      requestId: firstRequest.requestId,
+      offset: 0,
+      total: 1,
+      results: [match('stale')],
+    });
+    expect(service.results()).toEqual([]);
+
+    const firstPage = Array.from({ length: 20 }, (_, n) => ({
+      ...match(String(n)),
+      movesBeforeLatestMatch: 0,
+    }));
+    worker.emit({
+      type: 'results',
+      requestId: latestRequest.requestId,
+      offset: 0,
+      total: 21,
+      results: firstPage,
+      latestMatchedMoveIndex: 0,
+    });
+    expect(service.results()).toHaveLength(20);
+    expect(service.hasMore()).toBe(true);
+    expect(service.latestMatchedMoveIndex()).toBe(0);
+
+    service.loadMore();
+    const nextRequest = worker.messages.at(-1);
+    expect(nextRequest).toMatchObject({ type: 'searchPgn', offset: 20 });
+    if (nextRequest?.type !== 'searchPgn') throw new Error('Expected next PGN page.');
+    worker.emit({
+      type: 'results',
+      requestId: nextRequest.requestId,
+      offset: 20,
+      total: 21,
+      results: [{ ...match('last'), movesBeforeLatestMatch: 2 }],
+    });
+    expect(service.results()[20].movesBeforeLatestMatch).toBe(2);
+    expect(service.latestMatchedMoveIndex()).toBe(0);
+    expect(service.hasMore()).toBe(false);
+  });
 });

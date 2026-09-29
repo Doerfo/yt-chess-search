@@ -1,6 +1,6 @@
 # YouTube Chess Search
 
-Search Daniel Naroditsky's YouTube videos for moments that show a chess position. Play moves from the starting position on the board, then browse matching moments by video and timestamp. Open a result to jump to that moment on YouTube.
+Search Daniel Naroditsky's YouTube videos for moments that show a chess position. Play moves on the board, or load a FEN or PGN in the field below it. Browse matching moments by video and timestamp; open a result to jump to that moment on YouTube.
 
 The app searches a JSON file in the browser. It does not need a search server or database, so the built site can be hosted as static files.
 
@@ -64,6 +64,8 @@ Replace the example IDs and title with values for your videos. The fields mean:
 Each video needs `videoId`, `videoName`, `sourceUrl`, and `positions`. `uploadDate` and `durationSeconds` are optional. Each position needs all four fields shown in the example.
 
 Search results show one row per video, sorted by upload date with the newest first. Each row lists every matching interval as a clickable timestamp below the video title.
+
+The board's FEN or PGN field accepts a single game's main line, including PGN headers, comments, and setup FENs. PGN search checks the position after each played move, beginning with the final position. Each video appears once at its latest matching position. Results are ordered by how few half moves precede the latest position found in any video; ties use the same upload date, title, and video ID order as Position search. A `-1 half move from last position found` counter means the match is one ply earlier; `-2` means two plies earlier. The board shows the latest found position, and Back and Forward step through the game. PGN results load 20 videos at a time; Position results load 50.
 
 After saving an updated data file, run the app locally to see the new search results:
 

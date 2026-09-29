@@ -6,7 +6,9 @@ import {
   OnDestroy,
   AfterViewInit,
   computed,
+  effect,
   inject,
+  input,
   output,
   signal,
   viewChild,
@@ -23,6 +25,7 @@ import {
 } from 'cm-chessboard';
 import { Markers } from 'cm-chessboard/src/extensions/markers/Markers.js';
 import type { BoardOrientation } from '../search/position-match';
+import { parsePgn } from '../search/pgn-search';
 
 type PromotionPiece = 'q' | 'r' | 'b' | 'n';
 
@@ -48,6 +51,8 @@ const PROMOTION_OPTIONS: ReadonlyArray<{ piece: PromotionPiece; label: string }>
 export class SearchBoard implements AfterViewInit, OnDestroy {
   readonly positionChange = output<string | null>();
   readonly orientationChange = output<BoardOrientation>();
+  readonly pgnChange = output<string[]>();
+  readonly pgnMatchIndex = input<number | null>(null);
 
   protected readonly promotionOptions = PROMOTION_OPTIONS;
   protected readonly pendingPromotion = signal<PendingPromotion | null>(null);
@@ -61,12 +66,24 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
 
   private readonly document = inject(DOCUMENT);
   private readonly boardHost = viewChild.required<ElementRef<HTMLDivElement>>('boardHost');
+  private readonly boardInput = viewChild<ElementRef<HTMLTextAreaElement>>('fenInput');
   private readonly game = new Chess();
   private readonly positionHistory = signal<readonly string[]>([FEN.start]);
   private readonly historyIndex = signal(0);
   private board: Chessboard | null = null;
   private moveWasApplied = false;
   private loadedPosition = false;
+  private loadedPgn = false;
+
+  constructor() {
+    effect(() => {
+      const moveIndex = this.pgnMatchIndex();
+      if (!this.loadedPgn) return;
+      this.restoreHistoryPosition(
+        moveIndex === null ? this.positionHistory().length - 1 : moveIndex + 1,
+      );
+    });
+  }
 
   protected readonly canGoBack = computed(() => this.historyIndex() > 0);
   protected readonly canGoForward = computed(
@@ -104,6 +121,8 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
   }
 
   protected reset(): void {
+    const input = this.boardInput()?.nativeElement;
+    if (input) input.value = '';
     this.game.reset();
     this.positionHistory.set([FEN.start]);
     this.historyIndex.set(0);
@@ -112,6 +131,7 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
     this.clearMoveSelection();
     this.moveWasApplied = false;
     this.loadedPosition = false;
+    this.loadedPgn = false;
     this.turnDescription.set('White to move');
     this.board?.setPosition(FEN.start, false);
     this.positionChange.emit(null);
@@ -133,27 +153,48 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
     this.restoreHistoryPosition(this.historyIndex() + 1);
   }
 
-  protected loadFen(event: Event, input: string): void {
+  protected loadBoardInput(event: Event, input: string): void {
     event.preventDefault();
-    const fields = input.trim().split(/\s+/);
-    if (fields.length !== 1 && fields.length !== 6) {
-      this.fenError.set('Enter a valid FEN or piece placement.');
+    const raw = input.trim();
+    const fields = raw.split(/\s+/);
+    const candidate = new Chess();
+    let loadedFen: string | null = null;
+    if (fields.length === 1 || fields.length === 6) {
+      try {
+        candidate.load(fields.length === 1 ? `${fields[0]} w - - 0 1` : fields.join(' '));
+        loadedFen = candidate.fen();
+      } catch {
+        // PGN movetext can also have one or six space-separated tokens.
+      }
+    }
+
+    if (loadedFen === null) {
+      try {
+        const pgn = parsePgn(raw);
+        this.game.load(pgn.finalFen);
+        this.clearMoveSelection();
+        this.positionHistory.set(pgn.positionFens);
+        this.historyIndex.set(pgn.positionFens.length - 1);
+        this.loadedPosition = true;
+        this.loadedPgn = true;
+        this.pendingPromotion.set(null);
+        this.moveWasApplied = false;
+        this.fenError.set(null);
+        this.turnDescription.set(this.game.turn() === 'w' ? 'White to move' : 'Black to move');
+        this.board?.setPosition(pgn.finalFen, false);
+        this.pgnChange.emit(pgn.piecePlacements);
+      } catch {
+        this.fenError.set('Enter a valid FEN, piece placement, or PGN with moves.');
+      }
       return;
     }
 
-    const fen = fields.length === 1 ? `${fields[0]} w - - 0 1` : fields.join(' ');
-    try {
-      this.game.load(fen);
-    } catch {
-      this.fenError.set('Enter a valid FEN or piece placement.');
-      return;
-    }
-
-    const loadedFen = this.game.fen();
+    this.game.load(loadedFen);
     this.clearMoveSelection();
     this.positionHistory.set([loadedFen]);
     this.historyIndex.set(0);
     this.loadedPosition = true;
+    this.loadedPgn = false;
     this.pendingPromotion.set(null);
     this.moveWasApplied = false;
     this.fenError.set(null);
@@ -264,6 +305,7 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
   }
 
   private updateAfterMove(): void {
+    this.loadedPgn = false;
     this.turnDescription.set(this.game.turn() === 'w' ? 'White to move' : 'Black to move');
     const piecePlacement = this.game.fen().split(' ')[0];
     this.positionChange.emit(piecePlacement ?? null);
@@ -293,7 +335,11 @@ export class SearchBoard implements AfterViewInit, OnDestroy {
     this.turnDescription.set(this.game.turn() === 'w' ? 'White to move' : 'Black to move');
     this.board?.setPosition(fen, false);
     const piecePlacement = fen.split(' ')[0];
-    this.positionChange.emit(index === 0 && !this.loadedPosition ? null : (piecePlacement ?? null));
+    if (!this.loadedPgn) {
+      this.positionChange.emit(
+        index === 0 && !this.loadedPosition ? null : (piecePlacement ?? null),
+      );
+    }
     return true;
   }
 }

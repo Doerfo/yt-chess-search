@@ -1,18 +1,35 @@
 <main class="home-page">
   <header class="page-intro">
     <p class="eyebrow">Chess video search - Daniel Naroditsky</p>
-    <h1>Find chess games by position</h1>
-    <p class="intro-copy">
-      Play moves from the starting position to find matching games from chess videos. Open a result
-      to see where the position appeared.
-    </p>
+    <h1>Find chess games by position or PGN</h1>
+    <div class="intro-copy">
+      <p>
+        <strong>FEN search:</strong> Play moves or enter a FEN to find matching positions in videos.
+      </p>
+      <p><strong>PGN search:</strong> Paste a PGN to find where its positions appear in videos.</p>
+    </div>
   </header>
 
-  <section class="search-layout" aria-label="Position search">
+  <section class="search-layout" aria-label="Chess video search">
     <div class="board-panel">
-      <h2>Play to your position</h2>
+      <h2>Play or load a position or game</h2>
+      @if (searchKind() === 'pgn') {
+        <p class="last-position-found" aria-live="polite">
+          @if (search.latestMatchedMoveIndex() !== null) {
+            Last position found:
+          } @else if (search.error()) {
+            Unable to find the last matching position.
+          } @else if (search.searching()) {
+            Finding the last matching position…
+          } @else {
+            No matching position found.
+          }
+        </p>
+      }
       <app-search-board
+        [pgnMatchIndex]="searchKind() === 'pgn' ? search.latestMatchedMoveIndex() : null"
         (positionChange)="onPositionChange($event)"
+        (pgnChange)="onPgnChange($event)"
         (orientationChange)="onBoardOrientationChange($event)"
       />
     </div>
@@ -28,6 +45,12 @@
       </label>
       <app-search-results
         [videos]="search.results()"
+        [heading]="searchKind() === 'pgn' ? 'PGN matches' : 'Position matches'"
+        [prompt]="
+          searchKind() === 'pgn'
+            ? 'Load a PGN to find matching videos.'
+            : 'Search a position to find matching videos.'
+        "
         [total]="search.total()"
         [loading]="search.searched() && (search.status() === 'loading' || search.searching())"
         [error]="search.error()"

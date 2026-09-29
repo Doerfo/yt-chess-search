@@ -1,4 +1,4 @@
-import { Component, output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import type { BoardOrientation, PositionVideoMatch } from '../search/position-match';
@@ -15,6 +15,8 @@ import { Home } from './home';
 class SearchBoardStub {
   readonly positionChange = output<string | null>();
   readonly orientationChange = output<BoardOrientation>();
+  readonly pgnChange = output<string[]>();
+  readonly pgnMatchIndex = input<number | null>(null);
 }
 
 describe('Home', () => {
@@ -27,7 +29,9 @@ describe('Home', () => {
     total: signal(0),
     searched: signal(false),
     hasMore: signal(false),
+    latestMatchedMoveIndex: signal<number | null>(null),
     search: vi.fn(),
+    searchPgn: vi.fn(),
     loadMore: vi.fn(),
     retry: vi.fn(),
   };
@@ -41,6 +45,7 @@ describe('Home', () => {
     searchService.total.set(0);
     searchService.searched.set(false);
     searchService.hasMore.set(false);
+    searchService.latestMatchedMoveIndex.set(null);
 
     await TestBed.configureTestingModule({
       imports: [Home],
@@ -129,5 +134,32 @@ describe('Home', () => {
     expect(results.error()).toBeNull();
     expect(results.searched()).toBe(true);
     expect(results.hasMore()).toBe(true);
+  });
+
+  it('routes a loaded PGN and its latest matched move back to the single board', () => {
+    const board = fixture.debugElement.query(By.directive(SearchBoardStub))
+      .componentInstance as SearchBoardStub;
+    board.pgnChange.emit(['first', 'second', 'third']);
+    expect(searchService.searchPgn).toHaveBeenLastCalledWith(['first', 'second', 'third'], null);
+    searchService.latestMatchedMoveIndex.set(1);
+    fixture.detectChanges();
+    expect(board.pgnMatchIndex()).toBe(1);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('PGN matches');
+
+    const checkbox = (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(
+      '.rotation-filter input',
+    )!;
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change'));
+    board.orientationChange.emit('black_bottom');
+    expect(searchService.searchPgn).toHaveBeenLastCalledWith(
+      ['first', 'second', 'third'],
+      'black_bottom',
+    );
+
+    board.positionChange.emit('manual-position');
+    fixture.detectChanges();
+    expect(searchService.search).toHaveBeenLastCalledWith('manual-position', 'black_bottom');
+    expect(board.pgnMatchIndex()).toBeNull();
   });
 });

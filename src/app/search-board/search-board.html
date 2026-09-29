@@ -35,20 +35,20 @@
     <button type="button" class="board-control" (click)="flip()">Flip board</button>
   </div>
 
-  <form class="fen-form" (submit)="loadFen($event, fenInput.value)">
-    <label class="visually-hidden" for="fen-input">FEN</label>
-    <input
+  <form class="fen-form" (submit)="loadBoardInput($event, fenInput.value)">
+    <label class="visually-hidden" for="fen-input">FEN or PGN</label>
+    <textarea
       #fenInput
       id="fen-input"
       class="fen-input"
-      type="text"
-      placeholder="FEN"
+      rows="2"
+      placeholder="FEN or PGN"
       autocomplete="off"
       spellcheck="false"
       [attr.aria-invalid]="fenError() ? 'true' : null"
       [attr.aria-describedby]="fenError() ? 'fen-error' : null"
       (input)="fenError.set(null)"
-    />
+    ></textarea>
     <button type="submit" class="board-control">Load</button>
   </form>
   @if (fenError(); as error) {
