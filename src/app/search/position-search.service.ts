@@ -5,8 +5,6 @@ import type {
   PositionSearchWorkerResponse,
   PositionSearchWorkerResultsMessage,
 } from './position-search.messages';
-import type { SearchMode } from './search-mode';
-import type { PawnSearchScope } from './pawn-structure';
 
 interface ActiveRequest {
   requestId: number;
@@ -44,8 +42,6 @@ export class PositionSearchService {
   private workerReady = false;
   private currentQuery: SearchQuery | null = null;
   private currentBoardOrientation: BoardOrientation | null = null;
-  private currentMode: SearchMode = 'position';
-  private currentPawnScope: PawnSearchScope = 'both';
   private nextRequestId = 0;
   private activeRequest: ActiveRequest | null = null;
 
@@ -53,18 +49,11 @@ export class PositionSearchService {
     this.startWorker();
   }
 
-  search(
-    piecePlacement: string | null,
-    boardOrientation: BoardOrientation | null = null,
-    mode: SearchMode = 'position',
-    pawnScope: PawnSearchScope = 'both',
-  ): void {
+  search(piecePlacement: string | null, boardOrientation: BoardOrientation | null = null): void {
     const placement = piecePlacement?.trim();
     this.setQuery(
       placement ? { type: 'search', piecePlacement: placement } : null,
       boardOrientation,
-      mode,
-      pawnScope,
     );
   }
 
@@ -78,16 +67,9 @@ export class PositionSearchService {
     );
   }
 
-  private setQuery(
-    query: SearchQuery | null,
-    boardOrientation: BoardOrientation | null,
-    mode: SearchMode = 'position',
-    pawnScope: PawnSearchScope = 'both',
-  ): void {
+  private setQuery(query: SearchQuery | null, boardOrientation: BoardOrientation | null): void {
     this.currentQuery = query;
     this.currentBoardOrientation = boardOrientation;
-    this.currentMode = mode;
-    this.currentPawnScope = mode === 'pawnStructure' ? pawnScope : 'both';
     this._searched.set(this.currentQuery !== null);
     this._searching.set(this.currentQuery !== null && this._status() !== 'error');
     this._results.set([]);
@@ -233,8 +215,6 @@ export class PositionSearchService {
             piecePlacement: query.piecePlacement,
             offset,
             boardOrientation: this.currentBoardOrientation,
-            mode: this.currentMode,
-            pawnScope: this.currentPawnScope,
           }
         : {
             type: 'searchPgn',

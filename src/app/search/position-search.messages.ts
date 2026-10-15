@@ -1,6 +1,4 @@
 import type { BoardOrientation, PositionVideoMatch } from './position-match';
-import type { SearchMode } from './search-mode';
-import type { PawnSearchScope } from './pawn-structure';
 
 export interface InitializeSearchWorkerMessage {
   type: 'initialize';
@@ -13,8 +11,6 @@ export interface SearchWorkerQueryMessage {
   piecePlacement: string;
   offset: number;
   boardOrientation: BoardOrientation | null;
-  mode: SearchMode;
-  pawnScope: PawnSearchScope;
 }
 
 export interface PgnWorkerQueryMessage {
