@@ -142,7 +142,7 @@ export class PositionSearchService {
         this.fail(event.message || 'Unable to start position search.');
       };
 
-      const url = new URL('data/combined-positions.json', this.document.baseURI).toString();
+      const url = new URL('data/positions-daniel-naroditsky.json', this.document.baseURI).toString();
       worker.postMessage({ type: 'initialize', url });
     } catch (error) {
       this.fail(error instanceof Error ? error.message : 'Unable to start position search.');

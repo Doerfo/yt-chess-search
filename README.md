@@ -17,7 +17,7 @@ Open `http://localhost:4200/` in your browser. The development server prints its
 
 ## Position data
 
-The app loads `src/data/combined-positions.json` when it starts. Keep that filename and location when updating the data. The file must be valid JSON and use the `yt-chess-search-channel-data/v1` format. This minimal example shows the fields the search app reads:
+The app loads `src/data/positions-daniel-naroditsky.json` when it starts. Keep that filename and location when updating the data. The file must be valid JSON and use the `yt-chess-search-channel-data/v1` format. This minimal example shows the fields the search app reads:
 
 ```json
 {

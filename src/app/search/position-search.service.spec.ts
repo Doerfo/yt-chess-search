@@ -74,7 +74,7 @@ describe('PositionSearchService', () => {
     const initializeMessage = worker.messages[0];
     expect(initializeMessage).toMatchObject({
       type: 'initialize',
-      url: new URL('data/combined-positions.json', document.baseURI).toString(),
+      url: new URL('data/positions-daniel-naroditsky.json', document.baseURI).toString(),
     });
 
     service.search('old-placement');
