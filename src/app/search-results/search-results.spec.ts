@@ -9,6 +9,7 @@ function video(
   durationSeconds: number | null = null,
 ): PositionVideoMatch {
   return {
+    channelId: 'channel',
     videoId,
     videoName: `Video ${videoId}`,
     sourceUrl: `https://www.youtube.com/watch?v=${videoId}`,

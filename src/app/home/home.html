@@ -1,6 +1,6 @@
 <main class="home-page">
   <header class="page-intro">
-    <p class="eyebrow">Chess video search - Daniel Naroditsky</p>
+    <p class="eyebrow">Chess video search</p>
     <h1>Find chess games by position or PGN</h1>
     <div class="intro-copy">
       <p>
@@ -43,6 +43,19 @@
         />
         <span>Only games with same board rotation</span>
       </label>
+      <div class="channel-filters" role="group" aria-label="YouTube channels">
+        @for (channel of channels; track channel.id) {
+          <label class="channel-filter">
+            <input
+              #channelCheckbox
+              type="checkbox"
+              [checked]="selectedChannelIds().includes(channel.id)"
+              (change)="onChannelChange(channel.id, channelCheckbox.checked)"
+            />
+            <span>{{ channel.name }}</span>
+          </label>
+        }
+      </div>
       <app-search-results
         [videos]="search.results()"
         [heading]="searchKind() === 'pgn' ? 'PGN matches' : 'Position matches'"

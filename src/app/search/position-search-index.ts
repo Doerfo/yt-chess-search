@@ -178,6 +178,7 @@ export function buildPositionIndex(data: unknown): PositionIndex {
       let videoMatch = videosForPlacement.get(videoId);
       if (!videoMatch) {
         videoMatch = {
+          channelId: data['channelId'],
           videoId,
           videoName,
           sourceUrl,
@@ -205,20 +206,40 @@ export function buildPositionIndex(data: unknown): PositionIndex {
   return index;
 }
 
+export function mergePositionIndexes(indexes: readonly PositionIndex[]): PositionIndex {
+  const merged = new Map<string, PositionVideoMatch[]>();
+  for (const index of indexes) {
+    for (const [piecePlacement, videos] of index) {
+      const existing = merged.get(piecePlacement);
+      if (existing) {
+        existing.push(...videos);
+      } else {
+        merged.set(piecePlacement, [...videos]);
+      }
+    }
+  }
+  for (const videos of merged.values()) {
+    videos.sort(compareVideos);
+  }
+  return merged;
+}
+
 export function readPositionBatch(
   index: PositionIndex,
   piecePlacement: string,
   offset: number,
   limit = POSITION_SEARCH_BATCH_SIZE,
   boardOrientation: BoardOrientation | null = null,
+  channelIds: readonly string[] | null = null,
 ): SearchBatch {
   const videos = index.get(piecePlacement) ?? [];
-  const matchingVideos =
-    boardOrientation === null
-      ? videos
-      : videos.filter((video) =>
-          video.positions.some((position) => position.boardOrientation === boardOrientation),
-        );
+  const channels = channelIds === null ? null : new Set(channelIds);
+  const matchingVideos = videos.filter(
+    (video) =>
+      (channels === null || channels.has(video.channelId)) &&
+      (boardOrientation === null ||
+        video.positions.some((position) => position.boardOrientation === boardOrientation)),
+  );
   const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
   const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.trunc(limit)) : 0;
   const page = matchingVideos.slice(safeOffset, safeOffset + safeLimit);
@@ -243,12 +264,15 @@ export function readPgnBatch(
   offset: number,
   limit = PGN_SEARCH_BATCH_SIZE,
   boardOrientation: BoardOrientation | null = null,
+  channelIds: readonly string[] | null = null,
 ): PgnSearchBatch {
+  const channels = channelIds === null ? null : new Set(channelIds);
   const latestMatchByVideo = new Map<string, PgnVideoMatch>();
 
   for (let moveIndex = piecePlacements.length - 1; moveIndex >= 0; moveIndex -= 1) {
     const videos = index.get(piecePlacements[moveIndex]) ?? [];
     for (const video of videos) {
+      if (channels !== null && !channels.has(video.channelId)) continue;
       if (latestMatchByVideo.has(video.videoId)) continue;
 
       const positions =

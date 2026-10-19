@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { SearchBoard } from '../search-board/search-board';
 import type { BoardOrientation } from '../search/position-match';
 import { PositionSearchService } from '../search';
+import { SEARCH_CHANNELS } from '../search/search-channels';
 import { SearchResults } from '../search-results/search-results';
 
 @Component({
@@ -13,6 +14,10 @@ import { SearchResults } from '../search-results/search-results';
 export class Home {
   protected readonly search = inject(PositionSearchService);
   protected readonly searchKind = signal<'position' | 'pgn'>('position');
+  protected readonly channels = SEARCH_CHANNELS;
+  protected readonly selectedChannelIds = signal<readonly string[]>(
+    SEARCH_CHANNELS.map((channel) => channel.id),
+  );
   private boardOrientation: BoardOrientation = 'white_bottom';
   private sameBoardRotationOnly = false;
   private currentPosition: string | null = null;
@@ -41,6 +46,13 @@ export class Home {
   protected onSameBoardRotationChange(enabled: boolean): void {
     this.sameBoardRotationOnly = enabled;
     this.searchCurrent();
+  }
+
+  protected onChannelChange(channelId: string, enabled: boolean): void {
+    this.selectedChannelIds.update((selected) =>
+      enabled ? [...selected, channelId] : selected.filter((id) => id !== channelId),
+    );
+    this.search.setChannels(this.selectedChannelIds());
   }
 
   private searchOrientation(): BoardOrientation | null {

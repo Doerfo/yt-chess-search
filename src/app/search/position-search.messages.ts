@@ -2,7 +2,7 @@ import type { BoardOrientation, PositionVideoMatch } from './position-match';
 
 export interface InitializeSearchWorkerMessage {
   type: 'initialize';
-  url: string;
+  urls: string[];
 }
 
 export interface SearchWorkerQueryMessage {
@@ -11,6 +11,7 @@ export interface SearchWorkerQueryMessage {
   piecePlacement: string;
   offset: number;
   boardOrientation: BoardOrientation | null;
+  channelIds: string[];
 }
 
 export interface PgnWorkerQueryMessage {
@@ -19,6 +20,7 @@ export interface PgnWorkerQueryMessage {
   piecePlacements: string[];
   offset: number;
   boardOrientation: BoardOrientation | null;
+  channelIds: string[];
 }
 
 export type PositionSearchWorkerRequest =

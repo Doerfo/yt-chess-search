@@ -1,5 +1,6 @@
 import {
   buildPositionIndex,
+  mergePositionIndexes,
   POSITION_DATA_SCHEMA_VERSION,
   readPositionBatch,
 } from './position-search-index';
@@ -156,5 +157,49 @@ describe('position search index', () => {
     expect(firstPage.results.every(({ positions }) => positions.length === 2)).toBe(true);
     expect(secondPage.results).toHaveLength(1);
     expect(secondPage.results[0].positions).toHaveLength(2);
+  });
+
+  it('merges channels and applies channel and rotation filters before counting and paging', () => {
+    const index = mergePositionIndexes([
+      buildPositionIndex({
+        ...dataset([
+          video('newest', 'Newest', [position(START_POSITION, 1, 'white_bottom')], '20260101'),
+        ]),
+        channelId: 'first-channel',
+      }),
+      buildPositionIndex({
+        ...dataset([
+          video('older', 'Older', [position(START_POSITION, 2, 'white_bottom')], '20240101'),
+          video(
+            'newer',
+            'Newer',
+            [
+              position(START_POSITION, 3, 'black_bottom'),
+              position(START_POSITION, 4, 'white_bottom'),
+            ],
+            '20250101',
+          ),
+        ]),
+        channelId: 'second-channel',
+      }),
+    ]);
+
+    expect(
+      readPositionBatch(index, START_POSITION, 0).results.map((video) => video.videoId),
+    ).toEqual(['newest', 'newer', 'older']);
+    const page = readPositionBatch(index, START_POSITION, 0, 1, 'white_bottom', ['second-channel']);
+    expect(page.total).toBe(2);
+    expect(page.results.map((video) => video.videoId)).toEqual(['newer']);
+    expect(page.results[0].channelId).toBe('second-channel');
+    expect(page.results[0].positions.map((position) => position.timeFromSeconds)).toEqual([4]);
+    expect(
+      readPositionBatch(index, START_POSITION, 1, 1, 'white_bottom', [
+        'second-channel',
+      ]).results.map((video) => video.videoId),
+    ).toEqual(['older']);
+    expect(readPositionBatch(index, START_POSITION, 0, 50, null, [])).toEqual({
+      results: [],
+      total: 0,
+    });
   });
 });
