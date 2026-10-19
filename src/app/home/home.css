@@ -102,17 +102,29 @@ h1 {
   scrollbar-gutter: stable;
 }
 
-.rotation-filter {
+.rotation-filter,
+.channel-filter {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.35rem 0.75rem 0.65rem;
   color: var(--muted);
   font-size: 0.75rem;
   cursor: pointer;
 }
 
-.rotation-filter input {
+.rotation-filter {
+  padding: 0.35rem 0.75rem 0.65rem;
+}
+
+.channel-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0 0.75rem 1rem;
+}
+
+.rotation-filter input,
+.channel-filter input {
   width: 1rem;
   height: 1rem;
   margin: 0;

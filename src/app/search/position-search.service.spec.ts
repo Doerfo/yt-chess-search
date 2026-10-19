@@ -7,6 +7,7 @@ import type {
   PositionSearchWorkerResponse,
 } from './position-search.messages';
 import type { PositionVideoMatch } from './position-match';
+import { SEARCH_CHANNELS } from './search-channels';
 
 class FakeWorker {
   onmessage: ((event: MessageEvent<PositionSearchWorkerResponse>) => void) | null = null;
@@ -29,6 +30,7 @@ class FakeWorker {
 
 function match(videoId: string): PositionVideoMatch {
   return {
+    channelId: SEARCH_CHANNELS[0].id,
     videoId,
     videoName: `Video ${videoId}`,
     sourceUrl: `https://www.youtube.com/watch?v=${videoId}`,
@@ -74,7 +76,9 @@ describe('PositionSearchService', () => {
     const initializeMessage = worker.messages[0];
     expect(initializeMessage).toMatchObject({
       type: 'initialize',
-      url: new URL('data/positions-daniel-naroditsky.json', document.baseURI).toString(),
+      urls: SEARCH_CHANNELS.map((channel) =>
+        new URL(`data/${channel.dataFile}`, document.baseURI).toString(),
+      ),
     });
 
     service.search('old-placement');
@@ -92,6 +96,7 @@ describe('PositionSearchService', () => {
       type: 'search',
       piecePlacement: 'latest-placement',
       offset: 0,
+      channelIds: SEARCH_CHANNELS.map((channel) => channel.id),
     });
     expect(service.status()).toBe('ready');
   });
@@ -178,6 +183,68 @@ describe('PositionSearchService', () => {
     expect(retryWorker.messages.filter((message) => message.type === 'search')).toMatchObject([
       { type: 'search', piecePlacement: 'queued-placement', offset: 0 },
     ]);
+  });
+
+  it('reruns the current search with selected channels and ignores the previous selection', () => {
+    worker.emit({ type: 'ready' });
+    service.search('placement', 'black_bottom');
+    const oldRequest = worker.messages.at(-1);
+    if (oldRequest?.type !== 'search') throw new Error('Expected search request.');
+
+    service.setChannels([SEARCH_CHANNELS[1].id]);
+    expect(worker.messages.at(-1)).toMatchObject({
+      type: 'search',
+      piecePlacement: 'placement',
+      boardOrientation: 'black_bottom',
+      channelIds: [SEARCH_CHANNELS[1].id],
+      offset: 0,
+    });
+    worker.emit({
+      type: 'results',
+      requestId: oldRequest.requestId,
+      offset: 0,
+      total: 1,
+      results: [match('excluded')],
+    });
+    expect(service.results()).toEqual([]);
+    expect(service.searching()).toBe(true);
+
+    service.setChannels([]);
+    expect(worker.messages.at(-1)).toMatchObject({ type: 'search', channelIds: [] });
+  });
+
+  it('preserves the PGN channel filter while loading, paging, and retrying', () => {
+    const channelIds = [SEARCH_CHANNELS[2].id];
+    service.searchPgn(['first', 'last'], 'white_bottom');
+    service.setChannels(channelIds);
+    worker.emit({ type: 'ready' });
+    const request = worker.messages.at(-1);
+    expect(request).toMatchObject({
+      type: 'searchPgn',
+      piecePlacements: ['first', 'last'],
+      boardOrientation: 'white_bottom',
+      channelIds,
+      offset: 0,
+    });
+    if (request?.type !== 'searchPgn') throw new Error('Expected PGN request.');
+    worker.emit({
+      type: 'results',
+      requestId: request.requestId,
+      offset: 0,
+      total: 2,
+      results: [match('first')],
+    });
+    service.loadMore();
+    expect(worker.messages.at(-1)).toMatchObject({ type: 'searchPgn', channelIds, offset: 1 });
+
+    worker.emit({ type: 'error', message: 'Network failed.' });
+    service.retry();
+    workers[1].emit({ type: 'ready' });
+    expect(workers[1].messages.at(-1)).toMatchObject({
+      type: 'searchPgn',
+      channelIds,
+      offset: 0,
+    });
   });
 
   it('queues the latest PGN query, ignores stale replies, and pages its results', () => {

@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import type { BoardOrientation, PositionVideoMatch } from '../search/position-match';
 import { PositionSearchService } from '../search';
+import { SEARCH_CHANNELS } from '../search/search-channels';
 import { SearchBoard } from '../search-board/search-board';
 import { SearchResults } from '../search-results/search-results';
 import { Home } from './home';
@@ -32,6 +33,7 @@ describe('Home', () => {
     latestMatchedMoveIndex: signal<number | null>(null),
     search: vi.fn(),
     searchPgn: vi.fn(),
+    setChannels: vi.fn(),
     loadMore: vi.fn(),
     retry: vi.fn(),
   };
@@ -103,8 +105,40 @@ describe('Home', () => {
     expect(searchService.search).toHaveBeenLastCalledWith('board-fen', null);
   });
 
+  it('shows every channel checked below the rotation filter and updates the selection', async () => {
+    const element = fixture.nativeElement as HTMLElement;
+    const filters = element.querySelector('.channel-filters')!;
+    const checkboxes = [...filters.querySelectorAll<HTMLInputElement>('input')];
+
+    expect(filters.previousElementSibling?.className).toBe('rotation-filter');
+    expect(checkboxes).toHaveLength(3);
+    expect(checkboxes.every((checkbox) => checkbox.checked)).toBe(true);
+    for (const channel of SEARCH_CHANNELS) {
+      expect(filters.textContent).toContain(channel.name);
+    }
+
+    checkboxes[1].click();
+    await fixture.whenStable();
+    expect(searchService.setChannels).toHaveBeenLastCalledWith([
+      SEARCH_CHANNELS[0].id,
+      SEARCH_CHANNELS[2].id,
+    ]);
+
+    checkboxes[1].click();
+    await fixture.whenStable();
+    expect(searchService.setChannels.mock.lastCall?.[0]).toEqual(
+      expect.arrayContaining(SEARCH_CHANNELS.map((channel) => channel.id)),
+    );
+    expect(checkboxes.every((checkbox) => checkbox.checked)).toBe(true);
+
+    checkboxes.forEach((checkbox) => checkbox.click());
+    await fixture.whenStable();
+    expect(searchService.setChannels).toHaveBeenLastCalledWith([]);
+  });
+
   it('passes current results and search state to SearchResults', () => {
     const match: PositionVideoMatch = {
+      channelId: SEARCH_CHANNELS[0].id,
       videoId: 'video-1',
       videoName: 'A sample game',
       sourceUrl: 'https://www.youtube.com/watch?v=video-1',

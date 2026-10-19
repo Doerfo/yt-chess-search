@@ -34,7 +34,7 @@
                 "output": "assets/cm-chessboard/extensions/markers"
               },
               {
-                "glob": "positions-daniel-naroditsky.json",
+                "glob": "positions-*.json",
                 "input": "src/data",
                 "output": "data"
               }

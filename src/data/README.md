@@ -7,15 +7,19 @@ Timestamped chess positions extracted from YouTube videos for the search app.
 As of **2026-10-19**:
 
 - **Daniel Naroditsky (Danya):** all videos.
+- **Hanging Pawns:** all videos.
+- **Chessbrah Extra:** Building Habits (87 videos), Slowbrah (58 videos), and
+  selected OTB game reviews (7 videos).
 
 ## Files
 
-Each channel has a separate export. The app currently loads
-`positions-daniel-naroditsky.json`.
+Each channel has a separate export:
 
 | File | Videos | Position intervals |
 | --- | ---: | ---: |
 | `positions-daniel-naroditsky.json` | 628 | 263,691 |
+| `positions-hanging-pawns.json` | 1,633 | 320,927 |
+| `positions-chessbrah.json` | 152 | 96,503 |
 
 Position counts include repeated appearances of the same board placement.
 

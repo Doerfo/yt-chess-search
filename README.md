@@ -1,8 +1,8 @@
 # YouTube Chess Search
 
-Search Daniel Naroditsky's YouTube videos for moments that show a chess position. Play moves on the board, or load a FEN or PGN in the field below it. Browse matching moments by video and timestamp; open a result to jump to that moment on YouTube.
+Search YouTube videos from Daniel Naroditsky, Hanging Pawns, and Chessbrah Extra for moments that show a chess position. Play moves on the board, or load a FEN or PGN in the field below it. Browse matching moments by video and timestamp; open a result to jump to that moment on YouTube. All channels are selected by default; use the checkboxes below the board rotation filter to choose which channels to search.
 
-The app searches a JSON file in the browser. It does not need a search server or database, so the built site can be hosted as static files.
+The app searches the channel JSON files in the browser. It does not need a search server or database, so the built site can be hosted as static files.
 
 ## Run locally
 
@@ -17,7 +17,7 @@ Open `http://localhost:4200/` in your browser. The development server prints its
 
 ## Position data
 
-The app loads `src/data/positions-daniel-naroditsky.json` when it starts. Keep that filename and location when updating the data. The file must be valid JSON and use the `yt-chess-search-channel-data/v1` format. This minimal example shows the fields the search app reads:
+The app loads the three `src/data/positions-*.json` files when it starts. Available channels and filenames are configured in `src/app/search/search-channels.ts`. Keep those filenames and locations when updating the data. Each file must be valid JSON and use the `yt-chess-search-channel-data/v1` format. This minimal example shows the fields the search app reads:
 
 ```json
 {

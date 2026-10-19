@@ -38,10 +38,17 @@
                   found
                 </span>
               }
+              @let channel = channelName(video.channelId);
               @let uploadDate = formatDate(video.uploadDate);
               @let duration = formatDuration(video.durationSeconds);
-              @if (uploadDate || duration) {
+              @if (channel || uploadDate || duration) {
                 <p class="results__metadata">
+                  @if (channel) {
+                    <span>{{ channel }}</span>
+                  }
+                  @if (channel && (uploadDate || duration)) {
+                    <span aria-hidden="true">·</span>
+                  }
                   @if (uploadDate) {
                     <time [attr.datetime]="dateTime(video.uploadDate)">{{ uploadDate }}</time>
                   }

@@ -5,6 +5,7 @@ import type {
   PositionSearchWorkerResponse,
   PositionSearchWorkerResultsMessage,
 } from './position-search.messages';
+import { SEARCH_CHANNELS } from './search-channels';
 
 interface ActiveRequest {
   requestId: number;
@@ -42,6 +43,7 @@ export class PositionSearchService {
   private workerReady = false;
   private currentQuery: SearchQuery | null = null;
   private currentBoardOrientation: BoardOrientation | null = null;
+  private currentChannelIds: string[] = SEARCH_CHANNELS.map((channel) => channel.id);
   private nextRequestId = 0;
   private activeRequest: ActiveRequest | null = null;
 
@@ -65,6 +67,11 @@ export class PositionSearchService {
       piecePlacements?.length ? { type: 'searchPgn', piecePlacements: [...piecePlacements] } : null,
       boardOrientation,
     );
+  }
+
+  setChannels(channelIds: readonly string[]): void {
+    this.currentChannelIds = [...channelIds];
+    this.setQuery(this.currentQuery, this.currentBoardOrientation);
   }
 
   private setQuery(query: SearchQuery | null, boardOrientation: BoardOrientation | null): void {
@@ -142,8 +149,10 @@ export class PositionSearchService {
         this.fail(event.message || 'Unable to start position search.');
       };
 
-      const url = new URL('data/positions-daniel-naroditsky.json', this.document.baseURI).toString();
-      worker.postMessage({ type: 'initialize', url });
+      const urls = SEARCH_CHANNELS.map((channel) =>
+        new URL(`data/${channel.dataFile}`, this.document.baseURI).toString(),
+      );
+      worker.postMessage({ type: 'initialize', urls });
     } catch (error) {
       this.fail(error instanceof Error ? error.message : 'Unable to start position search.');
     }
@@ -215,6 +224,7 @@ export class PositionSearchService {
             piecePlacement: query.piecePlacement,
             offset,
             boardOrientation: this.currentBoardOrientation,
+            channelIds: this.currentChannelIds,
           }
         : {
             type: 'searchPgn',
@@ -222,6 +232,7 @@ export class PositionSearchService {
             piecePlacements: query.piecePlacements,
             offset,
             boardOrientation: this.currentBoardOrientation,
+            channelIds: this.currentChannelIds,
           },
     );
   }

@@ -1,5 +1,6 @@
 import { Component, effect, input, output, signal } from '@angular/core';
 import type { PositionOccurrence, PositionVideoMatch } from '../search';
+import { SEARCH_CHANNELS } from '../search/search-channels';
 import {
   buildTimestampedVideoUrl,
   formatUploadDate,
@@ -59,6 +60,10 @@ export class SearchResults {
 
   formatDate(uploadDate: string | null): string | null {
     return formatUploadDate(uploadDate);
+  }
+
+  channelName(channelId: string): string | null {
+    return SEARCH_CHANNELS.find((channel) => channel.id === channelId)?.name ?? null;
   }
 
   dateTime(uploadDate: string | null): string | null {

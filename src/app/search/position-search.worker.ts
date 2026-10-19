@@ -1,5 +1,6 @@
 import {
   buildPositionIndex,
+  mergePositionIndexes,
   POSITION_SEARCH_BATCH_SIZE,
   readPgnBatch,
   readPositionBatch,
@@ -25,15 +26,19 @@ function post(response: PositionSearchWorkerResponse): void {
   workerContext.postMessage(response);
 }
 
-async function initialize(url: string): Promise<void> {
+async function initialize(urls: readonly string[]): Promise<void> {
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Position data request failed (${response.status}).`);
-    }
-
-    const data: unknown = await response.json();
-    positionIndex = buildPositionIndex(data);
+    const indexes = await Promise.all(
+      urls.map(async (url) => {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Position data request failed (${response.status}).`);
+        }
+        const data: unknown = await response.json();
+        return buildPositionIndex(data);
+      }),
+    );
+    positionIndex = mergePositionIndexes(indexes);
     post({ type: 'ready' });
   } catch (error) {
     post({
@@ -45,7 +50,7 @@ async function initialize(url: string): Promise<void> {
 
 workerContext.addEventListener('message', ({ data }: MessageEvent<PositionSearchWorkerRequest>) => {
   if (data.type === 'initialize') {
-    void initialize(data.url);
+    void initialize(data.urls);
     return;
   }
 
@@ -61,6 +66,7 @@ workerContext.addEventListener('message', ({ data }: MessageEvent<PositionSearch
       data.offset,
       undefined,
       data.boardOrientation,
+      data.channelIds,
     );
     post({
       type: 'results',
@@ -79,6 +85,7 @@ workerContext.addEventListener('message', ({ data }: MessageEvent<PositionSearch
     data.offset,
     POSITION_SEARCH_BATCH_SIZE,
     data.boardOrientation,
+    data.channelIds,
   );
   post({
     type: 'results',

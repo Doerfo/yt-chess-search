@@ -1,5 +1,6 @@
 import {
   buildPositionIndex,
+  mergePositionIndexes,
   POSITION_DATA_SCHEMA_VERSION,
   readPgnBatch,
 } from './position-search-index';
@@ -114,5 +115,40 @@ describe('readPgnBatch', () => {
     expect(firstPage.results).toHaveLength(20);
     expect(firstPage.results[0].videoId).toBe('00');
     expect(secondPage.results.map(({ videoId }) => videoId)).toEqual(['20', '21']);
+  });
+
+  it('anchors the latest PGN match to selected channels and combines rotation filtering', () => {
+    const data = mergePositionIndexes([
+      index([
+        video('excluded-latest', [{ placement: THIRD, time: 1, orientation: 'white_bottom' }]),
+      ]),
+      buildPositionIndex({
+        schemaVersion: POSITION_DATA_SCHEMA_VERSION,
+        channelId: 'selected-channel',
+        videos: [
+          video('middle', [{ placement: SECOND, time: 2, orientation: 'white_bottom' }]),
+          video('earlier', [{ placement: FIRST, time: 3, orientation: 'white_bottom' }]),
+          video('wrong-rotation', [{ placement: THIRD, time: 4, orientation: 'black_bottom' }]),
+        ],
+      }),
+    ]);
+
+    const batch = readPgnBatch(data, [FIRST, SECOND, THIRD], 0, 1, 'white_bottom', [
+      'selected-channel',
+    ]);
+    expect(batch.total).toBe(2);
+    expect(batch.latestMatchedMoveIndex).toBe(1);
+    expect(
+      batch.results.map(({ videoId, movesBeforeLatestMatch }) => [videoId, movesBeforeLatestMatch]),
+    ).toEqual([['middle', 0]]);
+    expect(
+      readPgnBatch(data, [FIRST, SECOND, THIRD], 1, 1, 'white_bottom', ['selected-channel'])
+        .results[0].movesBeforeLatestMatch,
+    ).toBe(1);
+    expect(readPgnBatch(data, [FIRST, SECOND, THIRD], 0, 20, null, [])).toEqual({
+      results: [],
+      total: 0,
+      latestMatchedMoveIndex: null,
+    });
   });
 });
